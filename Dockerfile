@@ -1,39 +1,51 @@
-FROM node:22.12.0-alpine AS base
+# ───────────── Base Stage ─────────────
+FROM node:18-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies
+# ───────────── Dependencies Stage ─────────────
 FROM base AS deps
 COPY package.json package-lock.json ./
+# Use `npm install` since `npm ci` was mismatched on Render
 RUN npm install
 
-# Build both Payload and Next.js (assuming your build script does that)
+# ───────────── Build Stage ─────────────
 FROM base AS builder
 WORKDIR /app
+
+# Copy installed dependencies from the deps stage
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
+# Build Next.js (which will also bundle Payload via @payloadcms/next)
 RUN npm run build
 
-# Production image
-FROM base AS runner
+# ───────────── Runner (Production) Stage ─────────────
+FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Copy Next.js standalone output (includes Payload API and its own node_modules)
+COPY --from=builder /app/.next/standalone ./
 
+# Copy Next’s static assets
+COPY --from=builder /app/.next/static ./.next/static
+
+# (Optional) Copy your public folder if you have one
+# If you don’t have a `public/` directory, you can delete this line.
 COPY --from=builder /app/public ./public
-RUN mkdir .next && chown nextjs:nodejs .next
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/payload-build ./payload-build
+# Expose port 3000 (the port Next standalone’s server.js listens on)
+EXPOSE 3000
+
+# Use a non-root user
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
 
 USER nextjs
 
-EXPOSE 3000
-ENV PORT 3000
-
+# Start the standalone server
 CMD ["node", "server.js"]
