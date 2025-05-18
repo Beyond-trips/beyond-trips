@@ -5,7 +5,9 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
   },
-  auth: true,
+  auth: {
+    verify: true, // ✅ email verification enabled here
+  },
   access: {
     create: () => true, // ✅ correct location
     read: () => true,
