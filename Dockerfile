@@ -34,9 +34,7 @@ COPY --from=builder /app/.next/standalone ./
 # Copy Next’s static assets
 COPY --from=builder /app/.next/static ./.next/static
 
-# (Optional) Copy your public folder if you have one
-# If you don’t have a `public/` directory, you can delete this line.
-COPY --from=builder /app/public ./public
+
 
 # Expose port 3000 (the port Next standalone’s server.js listens on)
 EXPOSE 3000
