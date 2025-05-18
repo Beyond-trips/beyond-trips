@@ -10,7 +10,7 @@ import { nodemailerAdapter }  from '@payloadcms/email-nodemailer'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
-csrf: ['http://localhost:3001']
+
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -19,9 +19,9 @@ export default buildConfig({
   // Admin config
   admin: {
     user: Users.slug,
-    importMap: { baseDir: path.resolve(__dirname) },
+    importMap: { baseDir: path.resolve(dirname) },
   },
-
+  csrf: ['http://localhost:3001'],
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
@@ -55,6 +55,6 @@ export default buildConfig({
 
   // TypeScript output
   typescript: {
-    outputFile: path.resolve(__dirname, 'payload-types.ts'),
+    outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
 })
