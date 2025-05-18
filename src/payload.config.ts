@@ -19,8 +19,10 @@ export default buildConfig({
   // Admin config
   admin: {
     user: Users.slug,
+    
     importMap: { baseDir: path.resolve(dirname) },
   },
+  
   csrf: ['http://localhost:3001'],
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
