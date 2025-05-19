@@ -37,8 +37,8 @@ export default buildConfig({
 
   // Email adapter
   email: nodemailerAdapter({
-    defaultFromAddress: 'no-reply@yourapp.com',
-    defaultFromName:    'My App',
+    defaultFromAddress: 'hello@beyondtrip.co.uk',
+    defaultFromName:    'Beyond Trips',
     transportOptions: {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
