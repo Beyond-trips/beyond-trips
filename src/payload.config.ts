@@ -23,7 +23,7 @@ export default buildConfig({
     importMap: { baseDir: path.resolve(dirname) },
   },
   
-  csrf: ['http://localhost:3001'],
+  csrf: ['*'],
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
