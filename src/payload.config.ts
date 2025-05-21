@@ -11,6 +11,7 @@ import { nodemailerAdapter }  from '@payloadcms/email-nodemailer'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -21,9 +22,8 @@ export default buildConfig({
     
     importMap: { baseDir: path.resolve(dirname) },
   },
-
-  cors: ['*'],
-  csrf: ['*'],
+  
+  csrf: ['http://localhost:3001'],
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
