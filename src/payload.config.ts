@@ -21,9 +21,9 @@ export default buildConfig({
     
     importMap: { baseDir: path.resolve(dirname) },
   },
-  cors: ['*'],
+  cors: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
 
-  csrf: ['*'],
+  csrf: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
