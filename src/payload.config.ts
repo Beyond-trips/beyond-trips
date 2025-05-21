@@ -15,15 +15,18 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
+  cors: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
+
+  csrf: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
   // Admin config
   admin: {
     user: Users.slug,
     
     importMap: { baseDir: path.resolve(dirname) },
   },
-  cors: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
+  
 
-  csrf: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
+  
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
