@@ -15,15 +15,16 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
+  cors: ['*'],
+
+  csrf: ['*'],
   // Admin config
   admin: {
     user: Users.slug,
     
     importMap: { baseDir: path.resolve(dirname) },
   },
-  cors: ['*'],
-
-  csrf: ['*'],
+  
   // Only one secret
   secret: process.env.PAYLOAD_SECRET || '',
 
