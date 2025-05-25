@@ -68,6 +68,10 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    'business-details': BusinessDetail;
+    'ad-campaigns': AdCampaign;
+    'payment-budgeting': PaymentBudgeting;
+    'subscription-plans': SubscriptionPlan;
     media: Media;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,6 +80,10 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    'business-details': BusinessDetailsSelect<false> | BusinessDetailsSelect<true>;
+    'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
+    'payment-budgeting': PaymentBudgetingSelect<false> | PaymentBudgetingSelect<true>;
+    'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -120,6 +128,10 @@ export interface UserAuthOperations {
 export interface User {
   id: string;
   username: string;
+  role: 'admin' | 'user';
+  emailVerified?: boolean | null;
+  otp?: string | null;
+  otpExpiry?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -127,11 +139,86 @@ export interface User {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
-  _verified?: boolean | null;
-  _verificationToken?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   password?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "business-details".
+ */
+export interface BusinessDetail {
+  id: string;
+  companyEmail: string;
+  password: string;
+  companyName: string;
+  companyAddress: string;
+  contact: string;
+  industry: string;
+  emailVerified?: boolean | null;
+  verificationCode?: string | null;
+  registrationStatus?: ('pending' | 'email_verified' | 'campaign_setup' | 'payment_setup' | 'completed') | null;
+  registrationDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-campaigns".
+ */
+export interface AdCampaign {
+  id: string;
+  businessId: string | BusinessDetail;
+  campaignType: 'magazine' | 'digital' | 'qr_engagement';
+  campaignName?: string | null;
+  campaignDescription?: string | null;
+  status?: ('draft' | 'active' | 'paused' | 'completed') | null;
+  createdAt: string;
+  updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-budgeting".
+ */
+export interface PaymentBudgeting {
+  id: string;
+  businessId: string | BusinessDetail;
+  pricingTier: 'starter' | 'standard' | 'pro';
+  monthlyBudget?: number | null;
+  paymentMethod?: ('card' | 'bank_transfer' | 'mobile_money') | null;
+  paymentStatus?: ('pending' | 'completed' | 'failed') | null;
+  subscriptionStartDate?: string | null;
+  nextBillingDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans".
+ */
+export interface SubscriptionPlan {
+  id: string;
+  planName: string;
+  planType: 'starter' | 'standard' | 'pro';
+  /**
+   * Price in your currency (e.g., NGN)
+   */
+  price: number;
+  currency?: string | null;
+  billingCycle?: ('monthly' | 'yearly') | null;
+  /**
+   * Plan description
+   */
+  description?: string | null;
+  features?:
+    | {
+        feature: string;
+        id?: string | null;
+      }[]
+    | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -140,6 +227,8 @@ export interface User {
 export interface Media {
   id: string;
   alt: string;
+  caption?: string | null;
+  _key?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -162,6 +251,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: string | User;
+      } | null)
+    | ({
+        relationTo: 'business-details';
+        value: string | BusinessDetail;
+      } | null)
+    | ({
+        relationTo: 'ad-campaigns';
+        value: string | AdCampaign;
+      } | null)
+    | ({
+        relationTo: 'payment-budgeting';
+        value: string | PaymentBudgeting;
+      } | null)
+    | ({
+        relationTo: 'subscription-plans';
+        value: string | SubscriptionPlan;
       } | null)
     | ({
         relationTo: 'media';
@@ -215,6 +320,10 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   username?: T;
+  role?: T;
+  emailVerified?: T;
+  otp?: T;
+  otpExpiry?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -222,10 +331,75 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
-  _verified?: T;
-  _verificationToken?: T;
   loginAttempts?: T;
   lockUntil?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "business-details_select".
+ */
+export interface BusinessDetailsSelect<T extends boolean = true> {
+  companyEmail?: T;
+  password?: T;
+  companyName?: T;
+  companyAddress?: T;
+  contact?: T;
+  industry?: T;
+  emailVerified?: T;
+  verificationCode?: T;
+  registrationStatus?: T;
+  registrationDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-campaigns_select".
+ */
+export interface AdCampaignsSelect<T extends boolean = true> {
+  businessId?: T;
+  campaignType?: T;
+  campaignName?: T;
+  campaignDescription?: T;
+  status?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-budgeting_select".
+ */
+export interface PaymentBudgetingSelect<T extends boolean = true> {
+  businessId?: T;
+  pricingTier?: T;
+  monthlyBudget?: T;
+  paymentMethod?: T;
+  paymentStatus?: T;
+  subscriptionStartDate?: T;
+  nextBillingDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans_select".
+ */
+export interface SubscriptionPlansSelect<T extends boolean = true> {
+  planName?: T;
+  planType?: T;
+  price?: T;
+  currency?: T;
+  billingCycle?: T;
+  description?: T;
+  features?:
+    | T
+    | {
+        feature?: T;
+        id?: T;
+      };
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -233,6 +407,8 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  caption?: T;
+  _key?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

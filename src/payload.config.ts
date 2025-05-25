@@ -1,15 +1,32 @@
-// storage-adapter-import-placeholder
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
-import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import path from 'path'
 import { buildConfig } from 'payload'
+import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { uploadthingStorage } from '@payloadcms/storage-uploadthing'
+import path from 'path'
 import { fileURLToPath } from 'url'
-import sharp from 'sharp'
-import { nodemailerAdapter }  from '@payloadcms/email-nodemailer'
 
 import { Users } from './collections/Users'
-import { Media } from './collections/Media'
+import { SubscriptionPlans } from './collections/SubscriptionPlans'
+import { BusinessDetails } from './collections/BusinessDetails'
+import { AdCampaigns } from './collections/AdCampaigns'
+import { PaymentBudgeting } from './collections/PaymentBudgeting'
+
+import { 
+  startPartnerRegistration,
+  verifyEmail,
+  resendVerificationCode,
+  createAdCampaign,
+  getSubscriptionPlans,
+  setupPaymentBudgeting,
+  completeRegistration,
+  getRegistrationStatus
+} from './endpoints/partnerRegistration'
+
+import {
+  generateUserOTP,
+  verifyUserOTP,
+  resendUserOTP
+} from './endpoints/userVerification'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -21,48 +38,114 @@ export default buildConfig({
     'https://www.google.com',
   ],
   csrf: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
-  // Admin config
+  
   admin: {
     user: Users.slug,
-    
-    importMap: { baseDir: path.resolve(dirname) },
-  },
-  
-
-  
-  // Only one secret
-  secret: process.env.PAYLOAD_SECRET || '',
-
-  // Only one database adapter
-  db: mongooseAdapter({
-    url: process.env.DATABASE_URI || '',
-  }),
-
-  // Server URL
-  serverURL: process.env.PAYLOAD_SERVER_URL,
-
-  // Email adapter
-  email: nodemailerAdapter({
-    defaultFromAddress: 'hello@beyondtrip.co.uk',
-    defaultFromName:    'Beyond Trips',
-    transportOptions: {
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+    importMap: { 
+      baseDir: path.resolve(dirname) 
     },
-  }),
-
-  // Collections, editor, plugins, etc.
-  collections: [Users, Media],
+  },
+  collections: [
+    Users,
+    BusinessDetails,
+    AdCampaigns,
+    PaymentBudgeting,
+    SubscriptionPlans,
+    // Media collection for business logos, campaign images, etc.
+    {
+      slug: 'media',
+      upload: true,
+      fields: [
+        {
+          name: 'alt',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'caption',
+          type: 'text',
+        },
+      ],
+    },
+  ],
   editor: lexicalEditor(),
-  sharp,
-  plugins: [payloadCloudPlugin()],
-
-  // TypeScript output
+  secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
+  db: mongooseAdapter({
+    url: process.env.MONGODB_URI || '',
+  }),
+  plugins: [
+    uploadthingStorage({
+      collections: {
+        media: true,
+      },
+      options: {
+        token: process.env.UPLOADTHING_SECRET,
+        acl: 'public-read',
+      },
+    }),
+  ],
+  endpoints: [
+    // Partner Registration Endpoints
+    {
+      path: '/partner/register',
+      method: 'post',
+      handler: startPartnerRegistration,
+    },
+    {
+      path: '/partner/verify-email',
+      method: 'post',
+      handler: verifyEmail,
+    },
+    {
+      path: '/partner/resend-code',
+      method: 'post',
+      handler: resendVerificationCode,
+    },
+    {
+      path: '/partner/create-campaign',
+      method: 'post',
+      handler: createAdCampaign,
+    },
+    {
+      path: '/partner/subscription-plans',
+      method: 'get',
+      handler: getSubscriptionPlans,
+    },
+    {
+      path: '/partner/setup-payment',
+      method: 'post',
+      handler: setupPaymentBudgeting,
+    },
+    {
+      path: '/partner/complete',
+      method: 'post',
+      handler: completeRegistration,
+    },
+    {
+      path: '/partner/status/:id',
+      method: 'get',
+      handler: getRegistrationStatus,
+    },
+    
+    // User Verification Endpoints
+    {
+      path: '/user/generate-otp',
+      method: 'post',
+      handler: generateUserOTP,
+    },
+    {
+      path: '/user/verify-otp',
+      method: 'post',
+      handler: verifyUserOTP,
+    },
+    {
+      path: '/user/resend-otp',
+      method: 'post',
+      handler: resendUserOTP,
+    },
+  ],
 })
+

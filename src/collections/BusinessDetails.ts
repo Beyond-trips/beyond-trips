@@ -1,0 +1,65 @@
+import type { CollectionConfig } from 'payload'
+
+export const BusinessDetails: CollectionConfig = {
+  slug: 'business-details',
+  admin: {
+    useAsTitle: 'companyName',
+  },
+  fields: [
+    {
+      name: 'companyEmail',
+      type: 'email',
+      required: true,
+      unique: true,
+    },
+    {
+      name: 'password',
+      type: 'text',
+      required: true,
+      // In production, this should be hashed
+    },
+    {
+      name: 'companyName',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'companyAddress',
+      type: 'textarea',
+      required: true,
+    },
+    {
+      name: 'contact',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'industry',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'emailVerified',
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'verificationCode',
+      type: 'text',
+      admin: {
+        hidden: true, // Hide from admin UI
+      },
+    },
+    {
+      name: 'registrationStatus',
+      type: 'select',
+      options: ['pending', 'email_verified', 'campaign_setup', 'payment_setup', 'completed'],
+      defaultValue: 'pending',
+    },
+    {
+      name: 'registrationDate',
+      type: 'date',
+      defaultValue: () => new Date(),
+    },
+  ],
+}

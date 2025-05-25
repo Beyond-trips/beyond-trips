@@ -2,8 +2,10 @@ import { withPayload } from '@payloadcms/next/withPayload'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  // You can add other options here if needed
+  // Your existing config
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+export default withPayload(nextConfig, {
+  // Point to your config file
+  configPath: './src/payload.config.ts'
+})
