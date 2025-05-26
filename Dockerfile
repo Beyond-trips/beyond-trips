@@ -22,28 +22,49 @@ COPY . .
 # Build Next.js (which will also bundle Payload via @payloadcms/next)
 RUN npm run build
 
+# Debug: Check if standalone was created
+RUN ls -la .next/
+
 # ───────────── Runner (Production) Stage ─────────────
 FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy Next.js standalone output (includes Payload API and its own node_modules)
-COPY --from=builder /app/.next/standalone ./
-
-# Copy Next’s static assets
-COPY --from=builder /app/.next/static ./.next/static
-
-
-
-# Expose port 3000 (the port Next standalone’s server.js listens on)
-EXPOSE 3000
-
-# Use a non-root user
+# Create user first
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
+# Try to copy standalone, but if it doesn't exist, fall back to regular build
+# First, copy the entire app for non-standalone builds
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# Copy .env files if they exist
+COPY --from=builder /app/.env* ./
+
+# If standalone exists, it will overwrite the above
+# (This is a workaround since COPY --from=builder /app/.next/standalone ./ fails if it doesn't exist)
+RUN if [ -d ".next/standalone" ]; then \
+    cp -r .next/standalone/* . && \
+    rm -rf node_modules && \
+    rm -rf .next; \
+  fi
+
+# Set correct ownership
+RUN chown -R nextjs:nodejs /app
+
+# Expose port 3000
+EXPOSE 3000
+
 USER nextjs
 
-# Start the standalone server
-CMD ["node", "server.js"]
+# Use different start commands based on whether standalone exists
+CMD if [ -f "server.js" ]; then \
+    node server.js; \
+  else \
+    npm start; \
+  fi
