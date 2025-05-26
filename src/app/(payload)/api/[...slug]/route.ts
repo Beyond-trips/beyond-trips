@@ -86,7 +86,7 @@ const handler = async (req: NextRequest) => {
          id: user.id,
          data: {
            otp,
-           otpExpiry,
+           otpExpiry: otpExpiry.toISOString(), // Convert Date to ISO string
          },
        })
 
@@ -184,7 +184,7 @@ const handler = async (req: NextRequest) => {
      if (secondPart && !thirdPart) {
        // GET /api/collection/id
        const result = await payload.findByID({
-         collection: firstPart,
+         collection: firstPart as any,
          id: secondPart,
        })
        return NextResponse.json(result)
@@ -194,7 +194,7 @@ const handler = async (req: NextRequest) => {
        const page = parseInt(searchParams.get('page') || '1')
        
        const result = await payload.find({
-         collection: firstPart,
+         collection: firstPart as any,
          limit,
          page,
        })
@@ -219,7 +219,7 @@ const handler = async (req: NextRequest) => {
      }
 
      const result = await payload.create({
-       collection: firstPart,
+       collection: firstPart as any,
        data: body,
      })
      return NextResponse.json(result)
@@ -242,7 +242,7 @@ const handler = async (req: NextRequest) => {
      }
 
      const result = await payload.update({
-       collection: firstPart,
+       collection: firstPart as any,
        id: secondPart,
        data: body,
      })
@@ -251,7 +251,7 @@ const handler = async (req: NextRequest) => {
 
    if (method === 'DELETE' && secondPart) {
      const result = await payload.delete({
-       collection: firstPart,
+       collection: firstPart as any,
        id: secondPart,
      })
      return NextResponse.json(result)
