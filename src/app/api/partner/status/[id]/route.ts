@@ -1,14 +1,15 @@
+// src/app/api/partner/status/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const payload = await getPayload({ config })
-    const businessId = params.id
+    const { id: businessId } = await params // Await the params
 
     const businessDetails = await payload.findByID({
       collection: 'business-details',
