@@ -43,10 +43,14 @@ const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
   }
 }
 
-// 1. Start Partner Registration
 export const startPartnerRegistration = async (req: PayloadRequest): Promise<Response> => {
   try {
+    console.log('🔍 Starting partner registration...')
+    console.log('Available collections:', Object.keys(req.payload.collections))
+    
     const body = await parseRequestBody(req)
+    console.log('📝 Received data:', JSON.stringify(body, null, 2))
+    
     const {
       companyEmail,
       password,
@@ -64,6 +68,8 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
         headers: { 'Content-Type': 'application/json' }
       })
     }
+    
+    console.log('🔍 Checking for existing business...')
     
     // Check if business already exists
     const existingBusiness = await req.payload.find({
@@ -83,8 +89,11 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
       })
     }
     
-    // Generate verification code (OTP)
+    // Generate verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString()
+    console.log(`🔐 Generated verification code: ${verificationCode}`)
+    
+    console.log('📝 Creating business details...')
     
     // Create business details with verification code
     const businessDetails = await req.payload.create({
@@ -98,24 +107,20 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
         industry,
         emailVerified: false,
         verificationCode,
-        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes expiry
+        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000),
         registrationStatus: 'pending',
-        registrationDate: new Date().toISOString(),
-      },
+        registrationDate: new Date(),
+      } as any,
     })
     
-    // Send verification email using your existing function
-    console.log(`🔐 Sending verification code to ${companyEmail}`)
+    console.log('✅ Business details created:', businessDetails.id)
+    
+    // Send verification email
+    console.log(`📧 Sending verification email to ${companyEmail}...`)
     const emailResult = await sendOTPEmail(companyEmail, verificationCode)
     
     if (!emailResult.success) {
-      console.error('Failed to send verification email:', emailResult.error)
-      // You might want to delete the business record if email fails
-      // await req.payload.delete({
-      //   collection: 'business-details',
-      //   id: businessDetails.id,
-      // })
-      
+      console.error('❌ Failed to send verification email:', emailResult.error)
       return new Response(JSON.stringify({ 
         error: 'Failed to send verification email', 
         details: emailResult.error 
@@ -125,22 +130,27 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
       })
     }
     
+    console.log('✅ Email sent successfully')
+    
     return new Response(JSON.stringify({
       success: true,
       businessId: businessDetails.id,
       message: 'Registration started. Please check your email for verification code.',
       emailSent: true,
-      // In development, you might want to include the code
+      // In development, include the code
       ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error('❌ Registration error:', error)
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    
     return new Response(JSON.stringify({ 
       error: 'Registration failed', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -450,22 +460,17 @@ export const completeRegistration = async (req: PayloadRequest): Promise<Respons
       },
     })
 
-    // Create a user account for the business
-    const user = await req.payload.create({
-      collection: 'users',
-      data: {
-        email: (businessDetails as any).companyEmail,
-        password: (businessDetails as any).password,
-        username: (businessDetails as any).companyName,
-        role: 'user',
-        emailVerified: true,
-      },
-    })
-
+    // No user creation - partner accounts are separate from user accounts
+    
     return new Response(JSON.stringify({
       success: true,
       message: 'Registration completed successfully',
-      userId: user.id,
+      businessId: businessId,
+      // You can add additional partner portal info here
+      partnerPortal: {
+        message: 'You can now log in to the partner portal',
+        // Add partner portal URL or next steps
+      }
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
