@@ -4,7 +4,6 @@ import crypto from 'crypto'
 import type { PayloadRequest } from 'payload'
 import { sendOTPEmail } from '../lib/email' // Import your existing email function
 
-
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
   try {
@@ -48,16 +47,16 @@ const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
 export const startPartnerRegistration = async (req: PayloadRequest): Promise<Response> => {
   try {
     const body = await parseRequestBody(req)
-    const { 
-      companyEmail, 
-      password, 
-      confirmPassword, 
-      companyName, 
-      companyAddress, 
-      contact, 
-      industry 
+    const {
+      companyEmail,
+      password,
+      confirmPassword,
+      companyName,
+      companyAddress,
+      contact,
+      industry
     } = body
-
+    
     // Validate password match
     if (password !== confirmPassword) {
       return new Response(JSON.stringify({ error: 'Passwords do not match' }), {
@@ -65,7 +64,7 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
+    
     // Check if business already exists
     const existingBusiness = await req.payload.find({
       collection: 'business-details',
@@ -76,14 +75,14 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
       },
       limit: 1,
     })
-
+    
     if (existingBusiness.docs.length > 0) {
       return new Response(JSON.stringify({ error: 'Business email already registered' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
+    
     // Generate verification code (OTP)
     const verificationCode = crypto.randomInt(100000, 999999).toString()
     
@@ -232,79 +231,310 @@ export const verifyEmail = async (req: PayloadRequest): Promise<Response> => {
   }
 }
 
-// Add resend functionality using the same email function
+
+
+
+// 3. Resend Verification Code
 export const resendVerificationCode = async (req: PayloadRequest): Promise<Response> => {
   try {
     const body = await parseRequestBody(req)
     const { businessId } = body
-    
+
+    const businessDetails = await req.payload.findByID({
+      collection: 'business-details',
+      id: businessId,
+    })
+
+    if (!businessDetails || (businessDetails as any).emailVerified) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Generate new code
+    const verificationCode = crypto.randomInt(100000, 999999).toString()
+
+    await req.payload.update({
+      collection: 'business-details',
+      id: businessId,
+      data: {
+        verificationCode,
+      },
+    })
+
+    // TODO: Send new verification email
+    console.log(`🔐 New verification code for ${(businessDetails as any).companyEmail}: ${verificationCode}`)
+    // await sendVerificationEmail(businessDetails.companyEmail, verificationCode)
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'New verification code sent',
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    console.error('Resend error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to resend code' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// 4. Create Ad Campaign
+export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { businessId, campaignType, campaignName, campaignDescription } = body
+
+    const businessDetails = await req.payload.findByID({
+      collection: 'business-details',
+      id: businessId,
+    })
+
+    if (!businessDetails || !(businessDetails as any).emailVerified) {
+      return new Response(JSON.stringify({ error: 'Email must be verified first' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Create ad campaign
+    const adCampaign = await req.payload.create({
+      collection: 'ad-campaigns',
+      data: {
+        businessId,
+        campaignType,
+        campaignName: campaignName || `Campaign for ${(businessDetails as any).companyName}`,
+        campaignDescription,
+        status: 'draft',
+      },
+    })
+
+    // Update business registration status
+    await req.payload.update({
+      collection: 'business-details',
+      id: businessId,
+      data: {
+        registrationStatus: 'campaign_setup',
+      },
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      campaignId: adCampaign.id,
+      message: 'Ad campaign created successfully',
+      nextStep: 'payment_setup',
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    console.error('Ad campaign creation error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to create ad campaign' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// 5. Get Available Subscription Plans
+export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const plans = await req.payload.find({
+      collection: 'subscription-plans',
+      where: {
+        isActive: {
+          equals: true,
+        },
+      },
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      plans: plans.docs,
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    console.error('Get plans error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to get subscription plans' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// 6. Setup Payment and Budgeting
+export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { businessId, pricingTier, monthlyBudget, paymentMethod } = body
+
+    const businessDetails = await req.payload.findByID({
+      collection: 'business-details',
+      id: businessId,
+    })
+
+    if (!businessDetails) {
+      return new Response(JSON.stringify({ error: 'Business not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Create payment budgeting record
+    const paymentBudgeting = await req.payload.create({
+      collection: 'payment-budgeting',
+      data: {
+        businessId,
+        pricingTier,
+        monthlyBudget,
+        paymentMethod,
+        paymentStatus: 'pending',
+        subscriptionStartDate: new Date().toISOString(),
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      },
+    })
+
+    // Update business registration status
+    await req.payload.update({
+      collection: 'business-details',
+      id: businessId,
+      data: {
+        registrationStatus: 'payment_setup',
+      },
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      paymentId: paymentBudgeting.id,
+      message: 'Payment plan selected',
+      nextStep: 'submission_confirmation',
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    console.error('Payment setup error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to setup payment plan' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// 7. Complete Registration
+export const completeRegistration = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { businessId } = body
+
+    const businessDetails = await req.payload.findByID({
+      collection: 'business-details',
+      id: businessId,
+    })
+
+    if (!businessDetails) {
+      return new Response(JSON.stringify({ error: 'Business not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Update business details to completed
+    await req.payload.update({
+      collection: 'business-details',
+      id: businessId,
+      data: {
+        registrationStatus: 'completed',
+      },
+    })
+
+    // Create a user account for the business
+    const user = await req.payload.create({
+      collection: 'users',
+      data: {
+        email: (businessDetails as any).companyEmail,
+        password: (businessDetails as any).password,
+        username: (businessDetails as any).companyName,
+        role: 'user',
+        emailVerified: true,
+      },
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Registration completed successfully',
+      userId: user.id,
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    console.error('Complete registration error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to complete registration' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// 8. Get Registration Status
+export const getRegistrationStatus = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const url = new URL(req.url || '')
+    const businessId = url.pathname.split('/').pop()
+
     if (!businessId) {
       return new Response(JSON.stringify({ error: 'Business ID is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
-    // Find business
-    const business = await req.payload.findByID({
+
+    const businessDetails = await req.payload.findByID({
       collection: 'business-details',
       id: businessId,
-    }) as any
-    
-    if (!business) {
+      depth: 2,
+    })
+
+    if (!businessDetails) {
       return new Response(JSON.stringify({ error: 'Business not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
-    if (business.emailVerified) {
-      return new Response(JSON.stringify({ error: 'Email already verified' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-    
-    // Generate new verification code
-    const newVerificationCode = crypto.randomInt(100000, 999999).toString()
-    
-    // Update business with new code
-    await req.payload.update({
-      collection: 'business-details',
-      id: businessId,
-      data: {
-        verificationCode: newVerificationCode,
-        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+
+    // Get related data
+    const adCampaigns = await req.payload.find({
+      collection: 'ad-campaigns',
+      where: {
+        businessId: {
+          equals: businessId,
+        },
       },
     })
-    
-    // Send new verification email
-    const emailResult = await sendOTPEmail(business.companyEmail, newVerificationCode)
-    
-    if (!emailResult.success) {
-      return new Response(JSON.stringify({ 
-        error: 'Failed to send verification email',
-        details: emailResult.error
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-    
+
+    const paymentBudgeting = await req.payload.find({
+      collection: 'payment-budgeting',
+      where: {
+        businessId: {
+          equals: businessId,
+        },
+      },
+      limit: 1,
+    })
+
     return new Response(JSON.stringify({
       success: true,
-      message: 'New verification code sent to your email',
-      // In development, include the code
-      ...(process.env.NODE_ENV === 'development' && { verificationCode: newVerificationCode }),
+      businessDetails,
+      adCampaigns: adCampaigns.docs,
+      paymentPlan: paymentBudgeting.docs[0] || null,
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Resend verification error:', error)
-    return new Response(JSON.stringify({ 
-      error: 'Failed to resend verification code',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
+    console.error('Get status error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to get registration status' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })

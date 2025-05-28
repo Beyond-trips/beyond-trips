@@ -159,6 +159,7 @@ export interface BusinessDetail {
   verificationCode?: string | null;
   registrationStatus?: ('pending' | 'email_verified' | 'campaign_setup' | 'payment_setup' | 'completed') | null;
   registrationDate?: string | null;
+  verificationCodeExpiry?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -349,6 +350,7 @@ export interface BusinessDetailsSelect<T extends boolean = true> {
   verificationCode?: T;
   registrationStatus?: T;
   registrationDate?: T;
+  verificationCodeExpiry?: T;
   updatedAt?: T;
   createdAt?: T;
 }
