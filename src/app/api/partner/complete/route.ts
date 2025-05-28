@@ -29,22 +29,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create a user account for the business
-    const user = await payload.create({
-      collection: 'users',
-      data: {
-        email: (businessDetails as any).companyEmail,
-        password: (businessDetails as any).password,
-        username: (businessDetails as any).companyName,
-        role: 'user',
-        emailVerified: true,
-      },
-    })
+    
 
     return NextResponse.json({
       success: true,
       message: 'Registration completed successfully',
-      userId: user.id,
     })
   } catch (error) {
     console.error('Complete registration error:', error)

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import crypto from 'crypto'
+import { sendOTPEmail } from '../../../../lib/email' // Import your existing email function
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,24 +61,39 @@ export async function POST(request: NextRequest) {
         industry,
         emailVerified: false,
         verificationCode,
+        verificationCodeExpiry:"",
         registrationStatus: 'pending',
         registrationDate: new Date().toISOString(),
       },
     })
 
     // TODO: Send verification email here
-    console.log(`🔐 Verification code for ${companyEmail}: ${verificationCode}`)
-
-    return NextResponse.json({
+    const emailResult = await sendOTPEmail(companyEmail, verificationCode)
+    
+    return new Response(JSON.stringify({
       success: true,
       businessId: businessDetails.id,
       message: 'Registration started. Please check your email for verification code.',
+      emailSent: true,
+      // In development, include the code
+      ...(process.env.NODE_ENV === 'development' && { verificationCode }),
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Registration error:', error)
-    return NextResponse.json(
-      { error: 'Registration failed', details: error },
-      { status: 500 }
-    )
+    console.error('❌ Registration error:', error)
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    return new NextResponse(JSON.stringify({ 
+      error: 'Registration failed', 
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
+
+
