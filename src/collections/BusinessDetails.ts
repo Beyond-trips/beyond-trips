@@ -61,5 +61,10 @@ export const BusinessDetails: CollectionConfig = {
       type: 'date',
       defaultValue: () => new Date(),
     },
+    {
+        name: 'verificationCodeExpiry',
+        type: 'date',
+        defaultValue: () => new Date(),
+      },
   ],
 }

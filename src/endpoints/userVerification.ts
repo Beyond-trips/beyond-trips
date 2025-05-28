@@ -43,78 +43,89 @@ const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
 }
 
 // Generate OTP and send to user
+// Generate OTP and send to user
 export const generateUserOTP = async (req: PayloadRequest): Promise<Response> => {
-  try {
-    const body = await parseRequestBody(req)
-    const { email } = body
-
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Find user by email
-    const users = await req.payload.find({
-      collection: 'users',
-      where: {
-        email: {
-          equals: email,
+    try {
+      const body = await parseRequestBody(req)
+      const { email } = body
+      
+      if (!email) {
+        return new Response(JSON.stringify({ error: 'Email is required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      
+      // Find user by email
+      const users = await req.payload.find({
+        collection: 'users',
+        where: {
+          email: {
+            equals: email,
+          },
         },
-      },
-      limit: 1,
-    })
-
-    if (users.docs.length === 0) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404,
+        limit: 1,
+      })
+      
+      if (users.docs.length === 0) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      
+      const user = users.docs[0] as any
+      
+      // Check if user is already verified
+      if (user.emailVerified) {
+        return new Response(JSON.stringify({ error: 'Email already verified' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      
+      // Generate new OTP
+      const otp = crypto.randomInt(100000, 999999).toString()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes expiry
+      
+      // Update user with new OTP - include existing username to avoid validation errors
+      await req.payload.update({
+        collection: 'users',
+        id: user.id,
+        data: {
+          otp,
+          otpExpiry,
+          username: user.username, // Include existing username
+        },
+      })
+      
+      // Send OTP email
+      console.log(`🔐 Generated OTP for ${email}: ${otp}`)
+      
+      // Import and use your email function
+      const { sendOTPEmail } = await import('../lib/email')
+      const emailResult = await sendOTPEmail(email, otp)
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Verification code sent to your email',
+        emailSent: emailResult.success,
+        // In development, you might want to include the OTP
+        ...(process.env.NODE_ENV === 'development' && { otp }),
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      console.error('Generate OTP error:', error)
+      return new Response(JSON.stringify({ 
+        error: 'Failed to generate verification code',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
-    const user = users.docs[0] as any
-
-    // Check if user is already verified
-    if (user.emailVerified) {
-      return new Response(JSON.stringify({ error: 'Email already verified' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Generate new OTP
-    const otp = crypto.randomInt(100000, 999999).toString()
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes expiry
-
-    // Update user with new OTP
-    await req.payload.update({
-      collection: 'users',
-      id: user.id,
-      data: {
-        otp,
-        otpExpiry,
-      },
-    })
-
-    // TODO: Send OTP email here
-    console.log(`🔐 Generated OTP for ${email}: ${otp}`)
-    // await sendOTPEmail(email, otp)
-
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Verification code sent to your email',
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
-  } catch (error) {
-    console.error('Generate OTP error:', error)
-    return new Response(JSON.stringify({ error: 'Failed to generate verification code' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
   }
-}
 
 // Verify OTP for regular users
 export const verifyUserOTP = async (req: PayloadRequest): Promise<Response> => {
