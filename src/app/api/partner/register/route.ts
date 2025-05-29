@@ -61,10 +61,10 @@ export async function POST(request: NextRequest) {
         industry,
         emailVerified: false,
         verificationCode,
-        verificationCodeExpiry:"",
+        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000),
         registrationStatus: 'pending',
-        registrationDate: new Date().toISOString(),
-      },
+        registrationDate: new Date(),
+      } as any,
     })
 
     // TODO: Send verification email here

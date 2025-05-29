@@ -2,6 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '../../../../payload.config'
+import { 
+  startPartnerRegistration,
+  verifyEmail,
+  resendVerificationCode,
+  createAdCampaign,
+  getSubscriptionPlans,
+  setupPaymentBudgeting,
+  completeRegistration,
+  getRegistrationStatus
+} from '../../../../endpoints/partnerRegistration'
 
 // Create a universal handler that routes to Payload operations
 const handler = async (req: NextRequest) => {
@@ -17,14 +27,67 @@ const handler = async (req: NextRequest) => {
    // Parse the path to determine the operation
    const pathParts = pathname.replace('/api/', '').split('/')
    const [firstPart, secondPart, thirdPart] = pathParts
-
+    
    // Test email connection endpoint
    if (firstPart === 'test-email' && method === 'GET') {
      const { testEmailConnection } = await import('../../../../lib/email')
      const result = await testEmailConnection()
      return NextResponse.json(result)
    }
+   if (firstPart === 'partner') {
+    // Create a PayloadRequest-like object
+    const payloadRequest = {
+      payload,
+      headers: req.headers,
+      json: async () => {
+        const text = await req.text()
+        return text ? JSON.parse(text) : {}
+      },
+      body: req.body,
+      url: req.url,
+      method: req.method,
+    }
 
+    // Route to appropriate partner function
+    if (secondPart === 'register' && thirdPart === 'start' && method === 'POST') {
+      return await startPartnerRegistration(payloadRequest as any)
+    }
+    
+    if (secondPart === 'verify-email' && method === 'POST') {
+      return await verifyEmail(payloadRequest as any)
+    }
+    
+    if (secondPart === 'resend-code' && method === 'POST') {
+      return await resendVerificationCode(payloadRequest as any)
+    }
+    
+    if (secondPart === 'create-campaign' && method === 'POST') {
+      return await createAdCampaign(payloadRequest as any)
+    }
+    
+    if (secondPart === 'subscription-plans' && method === 'GET') {
+      return await getSubscriptionPlans(payloadRequest as any)
+    }
+    
+    if (secondPart === 'setup-payment' && method === 'POST') {
+      return await setupPaymentBudgeting(payloadRequest as any)
+    }
+    
+    if (secondPart === 'complete' && method === 'POST') {
+      return await completeRegistration(payloadRequest as any)
+    }
+    
+    if (secondPart === 'status' && thirdPart && method === 'GET') {
+      return await getRegistrationStatus(payloadRequest as any)
+    }
+
+    // If no partner route matches
+    return NextResponse.json({
+      error: 'Partner endpoint not found',
+      path: pathname,
+      method: method
+    }, { status: 404 })
+  }
    // Handle different endpoint patterns
    if (firstPart === 'auth') {
      // Handle auth endpoints like /api/auth/generate-otp
