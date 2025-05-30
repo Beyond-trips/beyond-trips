@@ -5,9 +5,9 @@ import config from '@payload-config'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { action: string } }
+  { params }: { params: Promise<{ action: string }> }
 ) {
-  const action = params.action
+  const { action } = await params
   const payload = await getPayload({ config })
 
   if (action === 'generate-otp') {

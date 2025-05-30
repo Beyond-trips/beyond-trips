@@ -17,10 +17,10 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path || []
-  const pathname = path.join('/')
+  const { path } = await params
+  const pathname = (path || []).join('/')
   
   const payload = await getPayload({ config })
   const payloadRequest = {
@@ -51,10 +51,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path || []
-  const pathname = path.join('/')
+  const { path } = await params
+  const pathname = (path || []).join('/')
   
   const payload = await getPayload({ config })
   
