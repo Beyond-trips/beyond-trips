@@ -262,35 +262,50 @@ export const resendVerificationCode = async (req: PayloadRequest): Promise<Respo
       })
     }
 
-    // Generate new code
-    const verificationCode = crypto.randomInt(100000, 999999).toString()
+    // Generate new verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+    const codeExpiry = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
+    // Update business details with new code
     await req.payload.update({
       collection: 'business-details',
       id: businessId,
       data: {
         verificationCode,
+        verificationCodeExpiry: codeExpiry.toISOString(),
       },
     })
 
-    // TODO: Send new verification email
-    console.log(`🔐 New verification code for ${(businessDetails as any).companyEmail}: ${verificationCode}`)
-    // await sendVerificationEmail(businessDetails.companyEmail, verificationCode)
+    // Send verification email
+    const emailResult = await sendOTPEmail(
+      (businessDetails as any).companyEmail,
+      verificationCode
+    )
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'New verification code sent',
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: emailResult.success 
+          ? 'Verification code resent successfully' 
+          : 'Code generated but email sending failed',
+        emailSent: emailResult.success
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
   } catch (error) {
-    console.error('Resend error:', error)
-    return new Response(JSON.stringify({ error: 'Failed to resend code' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    console.error('Resend code error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to resend verification code' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-}
+}; 
+
+    
+    
 
 // 4. Create Ad Campaign
 export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
