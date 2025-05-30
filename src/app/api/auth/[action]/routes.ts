@@ -1,15 +1,14 @@
 // src/app/api/auth/[action]/route.ts
 import { getPayload } from 'payload'
 import { NextRequest, NextResponse } from 'next/server'
-import configPromise from '@payload-config'
+import config from '@payload-config'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ action: string }> }
+  { params }: { params: { action: string } }
 ) {
-  const resolvedParams = await params
-  const action = resolvedParams.action
-  const payload = await getPayload({ config: configPromise })
+  const action = params.action
+  const payload = await getPayload({ config })
 
   if (action === 'generate-otp') {
     try {
@@ -20,6 +19,7 @@ export async function POST(
         return NextResponse.json({ error: 'Email is required' }, { status: 400 })
       }
 
+      // Check if user exists
       const users = await payload.find({
         collection: 'users',
         where: { email: { equals: email } },
@@ -28,6 +28,7 @@ export async function POST(
 
       let user
       if (users.docs.length === 0) {
+        // Create new user
         user = await payload.create({
           collection: 'users',
           data: {
@@ -42,9 +43,11 @@ export async function POST(
         user = users.docs[0]
       }
 
+      // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString()
       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
+      // Update user with OTP
       await payload.update({
         collection: 'users',
         id: user.id,
@@ -54,7 +57,8 @@ export async function POST(
         },
       })
 
-      const { sendOTPEmail } = await import('@/lib/email')
+      // Import email function
+      const { sendOTPEmail } = await import('../../../../lib/email')
       const emailResult = await sendOTPEmail(email, otp)
 
       return NextResponse.json({
@@ -84,6 +88,7 @@ export async function POST(
         return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 })
       }
 
+      // Find user
       const users = await payload.find({
         collection: 'users',
         where: { email: { equals: email } },
@@ -96,14 +101,17 @@ export async function POST(
 
       const user = users.docs[0]
 
+      // Check OTP
       if (!user.otp || user.otp !== otp) {
         return NextResponse.json({ error: 'Invalid OTP' }, { status: 400 })
       }
 
+      // Check expiry
       if (!user.otpExpiry || new Date(user.otpExpiry) <= new Date()) {
         return NextResponse.json({ error: 'OTP has expired' }, { status: 400 })
       }
 
+      // Clear OTP and mark as verified
       await payload.update({
         collection: 'users',
         id: user.id,
