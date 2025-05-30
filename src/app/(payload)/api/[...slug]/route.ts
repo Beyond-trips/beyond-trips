@@ -20,8 +20,12 @@ import {
 // Import the REST handler from Payload
 import { REST_GET, REST_POST, REST_DELETE, REST_PATCH, REST_PUT } from '@payloadcms/next/routes'
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  const slug = params.slug
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const resolvedParams = await params
+  const slug = resolvedParams.slug
   const pathname = '/' + slug.join('/')
 
   // Handle test-email endpoint
@@ -55,11 +59,15 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   }
 
   // Let Payload handle all other GET requests
-  return REST_GET(req, { params })
+  return REST_GET(req, { params: resolvedParams })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  const slug = params.slug
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const resolvedParams = await params
+  const slug = resolvedParams.slug
   const pathname = '/' + slug.join('/')
 
   // Handle partner POST endpoints
@@ -211,17 +219,29 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   }
 
   // Let Payload handle all other POST requests (including /users/login)
-  return REST_POST(req, { params })
+  return REST_POST(req, { params: resolvedParams })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  return REST_DELETE(req, { params })
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const resolvedParams = await params
+  return REST_DELETE(req, { params: resolvedParams })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  return REST_PATCH(req, { params })
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const resolvedParams = await params
+  return REST_PATCH(req, { params: resolvedParams })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  return REST_PUT(req, { params })
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const resolvedParams = await params
+  return REST_PUT(req, { params: resolvedParams })
 }
