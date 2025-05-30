@@ -5,8 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "create-admin": "tsx createAdmin.ts",
     "seed": "tsx scripts/seed.ts",
-    "seed:plans": "tsx seeds/subscriptionPlans.ts",
+    "seed:plans": "tsx src/seeds/subscriptionPlans.ts",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
@@ -26,6 +27,7 @@
     "@types/nodemailer": "^6.4.17",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
     "graphql": "^16.8.1",
     "next": "15.3.0",
     "nodemailer": "^7.0.3",
