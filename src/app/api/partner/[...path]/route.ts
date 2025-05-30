@@ -1,5 +1,5 @@
 // src/app/api/partner/[...path]/route.ts
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import { NextRequest, NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 
@@ -16,12 +16,13 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path || []
+  const resolvedParams = await params
+  const path = resolvedParams.path || []
   const pathname = path.join('/')
   
-  const payload = await getPayloadHMR({ config: configPromise })
+  const payload = await getPayload({ config: configPromise })
   const payloadRequest = {
     payload,
     headers: req.headers,
@@ -42,12 +43,13 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path || []
+  const resolvedParams = await params
+  const path = resolvedParams.path || []
   const pathname = path.join('/')
   
-  const payload = await getPayloadHMR({ config: configPromise })
+  const payload = await getPayload({ config: configPromise })
   const payloadRequest = {
     payload,
     headers: req.headers,

@@ -1,14 +1,15 @@
 // src/app/api/auth/[action]/route.ts
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import { NextRequest, NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { action: string } }
+  { params }: { params: Promise<{ action: string }> }
 ) {
-  const action = params.action
-  const payload = await getPayloadHMR({ config: configPromise })
+  const resolvedParams = await params
+  const action = resolvedParams.action
+  const payload = await getPayload({ config: configPromise })
 
   if (action === 'generate-otp') {
     try {
