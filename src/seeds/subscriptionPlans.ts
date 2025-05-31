@@ -117,9 +117,6 @@ export const runSeed = async () => {
   }
 }
 
-// Run if this file is executed directly
-if (require.main === module) {
-  runSeed()
-}
+runSeed()
 
 export default seedSubscriptionPlans
