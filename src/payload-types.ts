@@ -159,6 +159,11 @@ export interface BusinessDetail {
   verificationCode?: string | null;
   registrationStatus?: ('pending' | 'email_verified' | 'campaign_setup' | 'payment_setup' | 'completed') | null;
   registrationDate?: string | null;
+  lastLogin?: string | null;
+  lastLogout?: string | null;
+  passwordResetToken?: string | null;
+  passwordResetExpiry?: string | null;
+  passwordChangedAt?: string | null;
   verificationCodeExpiry?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -350,6 +355,11 @@ export interface BusinessDetailsSelect<T extends boolean = true> {
   verificationCode?: T;
   registrationStatus?: T;
   registrationDate?: T;
+  lastLogin?: T;
+  lastLogout?: T;
+  passwordResetToken?: T;
+  passwordResetExpiry?: T;
+  passwordChangedAt?: T;
   verificationCodeExpiry?: T;
   updatedAt?: T;
   createdAt?: T;

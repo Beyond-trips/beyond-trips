@@ -1,8 +1,14 @@
+
+
 // endpoints/partnerRegistration.ts
 
 import crypto from 'crypto'
 import type { PayloadRequest } from 'payload'
-import { sendOTPEmail } from '../lib/email' // Import your existing email function
+import { sendOTPEmail } from '../lib/email'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
@@ -43,11 +49,514 @@ const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
   }
 }
 
+export async function loginPartner(req: any): Promise<Response> {
+  try {
+    const body = await parseRequestBody(req)
+    const { email, password } = body
+
+    if (!email || !password) {
+      return new Response(JSON.stringify({
+        error: 'Email and password are required'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partners = await req.payload.find({
+      collection: 'business-details',
+      where: {
+        companyEmail: {
+          equals: email.toLowerCase()
+        }
+      }
+    })
+
+    if (!partners.docs.length) {
+      return new Response(JSON.stringify({
+        error: 'Invalid credentials'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partner = partners.docs[0]
+
+    if (!partner.emailVerified || partner.registrationStatus !== 'completed') {
+      return new Response(JSON.stringify({
+        error: 'Account not verified. Please complete registration first.',
+        requiresVerification: true
+      }), { 
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const isValidPassword = await bcrypt.compare(password, partner.password)
+    
+    if (!isValidPassword) {
+      return new Response(JSON.stringify({
+        error: 'Invalid credentials'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const token = jwt.sign(
+      { 
+        id: partner.id,
+        email: partner.companyEmail,
+        role: 'partner',
+        partnerId: partner.id
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    )
+
+    await req.payload.update({
+      collection: 'business-details',
+      id: partner.id,
+      data: {
+        lastLogin: new Date().toISOString()
+      }
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      token,
+      partner: {
+        id: partner.id,
+        email: partner.companyEmail,
+        companyName: partner.companyName,
+        contact: partner.contact,
+        industry: partner.industry,
+        registrationStatus: partner.registrationStatus,
+        createdAt: partner.createdAt
+      }
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Login error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const logout = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      return new Response(JSON.stringify({
+        error: 'No token provided'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+    
+        // TO this:
+    await req.payload.update({
+      collection: 'business-details',
+      id: decoded.id,
+      data: {
+        lastLogout: new Date().toISOString()  // ✅ This is correct
+      }
+    })
+    
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Logged out successfully'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Logout error:', error)
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Logged out successfully'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const me = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      return new Response(JSON.stringify({
+        error: 'No token provided'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+    
+    const partner = await req.payload.findByID({
+      collection: 'business-details',
+      id: decoded.id
+    })
+
+    if (!partner) {
+      return new Response(JSON.stringify({
+        error: 'Partner not found'
+      }), { 
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      partner: {
+        id: partner.id,
+        companyEmail: partner.companyEmail,
+        companyName: partner.companyName,
+        companyAddress: partner.companyAddress,
+        contact: partner.contact,
+        industry: partner.industry,
+        emailVerified: partner.emailVerified,
+        registrationStatus: partner.registrationStatus,
+        registrationDate: partner.registrationDate,
+        lastLogin: partner.lastLogin,
+        createdAt: partner.createdAt,
+        updatedAt: partner.updatedAt
+      }
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Get partner info error:', error)
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return new Response(JSON.stringify({
+        error: 'Invalid token'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const updatePartnerProfile = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      return new Response(JSON.stringify({
+        error: 'No token provided'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+    const body = await parseRequestBody(req)
+    
+    const {
+      password,
+      emailVerified,
+      verificationCode,
+      verificationCodeExpiry,
+      registrationStatus,
+      ...allowedUpdates
+    } = body
+
+    const updatedPartner = await req.payload.update({
+      collection: 'business-details',
+      id: decoded.id,
+      data: allowedUpdates
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Profile updated successfully',
+      partner: {
+        id: updatedPartner.id,
+        companyEmail: updatedPartner.companyEmail,
+        companyName: updatedPartner.companyName,
+        companyAddress: updatedPartner.companyAddress,
+        contact: updatedPartner.contact,
+        industry: updatedPartner.industry,
+        updatedAt: updatedPartner.updatedAt
+      }
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Update partner info error:', error)
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return new Response(JSON.stringify({
+        error: 'Invalid token'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const forgotPassword = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { email } = body
+
+    if (!email) {
+      return new Response(JSON.stringify({
+        error: 'Email is required'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partners = await req.payload.find({
+      collection: 'business-details',
+      where: {
+        companyEmail: {
+          equals: email.toLowerCase()
+        }
+      },
+      limit: 1
+    })
+
+    if (partners.docs.length > 0) {
+      const partner = partners.docs[0]
+
+      const resetToken = crypto.randomBytes(32).toString('hex')
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000)
+
+      await req.payload.update({
+        collection: 'business-details',
+        id: partner.id,
+        data: {
+          passwordResetToken: resetToken,
+          passwordResetExpiry: resetTokenExpiry.toISOString()
+        }
+      })
+
+      const resetUrl = `${process.env.FRONTEND_URL}/partners/reset-password?token=${resetToken}`
+      
+      console.log(`🔐 Password reset requested for: ${email}`)
+      console.log(`🔗 Reset URL: ${resetUrl}`)
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent.'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Forgot password error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const verifyResetToken = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const url = new URL(req.url || '')
+    const token = url.searchParams.get('token')
+
+    if (!token) {
+      return new Response(JSON.stringify({
+        error: 'Reset token is required'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partners = await req.payload.find({
+      collection: 'business-details',
+      where: {
+        and: [
+          {
+            passwordResetToken: {
+              equals: token
+            }
+          },
+          {
+            passwordResetExpiry: {
+              greater_than: new Date()
+            }
+          }
+        ]
+      },
+      limit: 1
+    })
+
+    if (partners.docs.length === 0) {
+      return new Response(JSON.stringify({
+        error: 'Invalid or expired reset token'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Reset token is valid'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Verify reset token error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { token, password, confirmPassword } = body
+
+    if (!token || !password || !confirmPassword) {
+      return new Response(JSON.stringify({
+        error: 'Token, password, and confirm password are required'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (password !== confirmPassword) {
+      return new Response(JSON.stringify({
+        error: 'Passwords do not match'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (password.length < 8) {
+      return new Response(JSON.stringify({
+        error: 'Password must be at least 8 characters long'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partners = await req.payload.find({
+      collection: 'business-details',
+      where: {
+        and: [
+          {
+            passwordResetToken: {
+              equals: token
+            }
+          },
+          {
+            passwordResetExpiry: {
+              greater_than: new Date()
+            }
+          }
+        ]
+      },
+      limit: 1
+    })
+
+    if (partners.docs.length === 0) {
+      return new Response(JSON.stringify({
+        error: 'Invalid or expired reset token'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partner = partners.docs[0]
+
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+    await req.payload.update({
+      collection: 'business-details',
+      id: partner.id,
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+        passwordChangedAt: new Date().toISOString()
+      }
+    })
+
+    console.log(`✅ Password reset successful for: ${partner.companyEmail}`)
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Password has been reset successfully'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Reset password error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+
 export const startPartnerRegistration = async (req: PayloadRequest): Promise<Response> => {
   try {
     console.log('🔍 Starting partner registration...')
     console.log('Available collections:', Object.keys(req.payload.collections))
-    
     const body = await parseRequestBody(req)
     console.log('📝 Received data:', JSON.stringify(body, null, 2))
     
@@ -60,7 +569,7 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
       contact,
       industry
     } = body
-    
+
     // Validate password match
     if (password !== confirmPassword) {
       return new Response(JSON.stringify({ error: 'Passwords do not match' }), {
@@ -68,9 +577,18 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
+
+    // Validate password strength (optional but recommended)
+    if (password.length < 8) {
+      return new Response(JSON.stringify({ 
+        error: 'Password must be at least 8 characters long' 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     console.log('🔍 Checking for existing business...')
-    
     // Check if business already exists
     const existingBusiness = await req.payload.find({
       collection: 'business-details',
@@ -81,83 +599,69 @@ export const startPartnerRegistration = async (req: PayloadRequest): Promise<Res
       },
       limit: 1,
     })
-    
+
     if (existingBusiness.docs.length > 0) {
       return new Response(JSON.stringify({ error: 'Business email already registered' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
+
+    // Hash the password before storing
+    console.log('🔐 Hashing password...')
+    const saltRounds = 12 // Higher number = more secure but slower
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
     // Generate verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString()
     console.log(`🔐 Generated verification code: ${verificationCode}`)
     
+
     console.log('📝 Creating business details...')
-    
-    // Create business details with verification code
+    // Create business details with hashed password
     const businessDetails = await req.payload.create({
       collection: 'business-details',
       data: {
         companyEmail,
-        password, // In production, this should be hashed
+        password: hashedPassword,
         companyName,
         companyAddress,
         contact,
         industry,
         emailVerified: false,
         verificationCode,
-        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000),
+        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // Convert to ISO string
         registrationStatus: 'pending',
-        registrationDate: new Date(),
+        registrationDate: new Date().toISOString(), // Convert to ISO string
       } as any,
     })
-    
+
     console.log('✅ Business details created:', businessDetails.id)
-    
-    // Send verification email
-    console.log(`📧 Sending verification email to ${companyEmail}...`)
+
+    // Send verification email here (if you have email service set up)
+    // await sendVerificationEmail(companyEmail, verificationCode)
     const emailResult = await sendOTPEmail(companyEmail, verificationCode)
-    
-    if (!emailResult.success) {
-      console.error('❌ Failed to send verification email:', emailResult.error)
-      return new Response(JSON.stringify({ 
-        error: 'Failed to send verification email', 
-        details: emailResult.error 
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-    
-    console.log('✅ Email sent successfully')
-    
+
     return new Response(JSON.stringify({
       success: true,
-      businessId: businessDetails.id,
-      message: 'Registration started. Please check your email for verification code.',
-      emailSent: true,
-      // In development, include the code
-      ...(process.env.NODE_ENV === 'development' && { verificationCode }),
+      message: 'Registration started successfully. Please check your email for verification code.',
+      businessId: businessDetails.id
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     })
+
   } catch (error) {
     console.error('❌ Registration error:', error)
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
-    
-    return new Response(JSON.stringify({ 
-      error: 'Registration failed', 
-      details: error instanceof Error ? error.message : 'Unknown error',
-      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
   }
 }
-
 // Also update the verify email function to check expiry
 export const verifyEmail = async (req: PayloadRequest): Promise<Response> => {
   try {
@@ -272,9 +776,10 @@ export const resendVerificationCode = async (req: PayloadRequest): Promise<Respo
       id: businessId,
       data: {
         verificationCode,
-        verificationCodeExpiry: codeExpiry.toISOString(),
+        verificationCodeExpiry: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // Convert to ISO string
       },
     })
+    
 
     // Send verification email
     const emailResult = await sendOTPEmail(
@@ -305,39 +810,73 @@ export const resendVerificationCode = async (req: PayloadRequest): Promise<Respo
 }; 
 
     
-    
-
-// 4. Create Ad Campaign
+   // Updated createAdCampaign function with proper relationship handling
 export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
   try {
+    console.log('🚀 Creating ad campaign...')
     const body = await parseRequestBody(req)
+    console.log('📝 Campaign data received:', JSON.stringify(body, null, 2))
+    
     const { businessId, campaignType, campaignName, campaignDescription } = body
 
+    // Validate required fields
+    if (!businessId) {
+      console.log('❌ Missing businessId')
+      return new Response(JSON.stringify({ error: 'Business ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!campaignType) {
+      console.log('❌ Missing campaignType')
+      return new Response(JSON.stringify({ error: 'Campaign type is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('🔍 Looking up business details...')
     const businessDetails = await req.payload.findByID({
       collection: 'business-details',
       id: businessId,
     })
 
-    if (!businessDetails || !(businessDetails as any).emailVerified) {
+    if (!businessDetails) {
+      console.log('❌ Business not found')
+      return new Response(JSON.stringify({ error: 'Business not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!(businessDetails as any).emailVerified) {
+      console.log('❌ Email not verified')
       return new Response(JSON.stringify({ error: 'Email must be verified first' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Create ad campaign
+    console.log('📊 Creating ad campaign record...')
+    
+    // Create ad campaign - businessId will be used as relationship
     const adCampaign = await req.payload.create({
       collection: 'ad-campaigns',
       data: {
-        businessId,
+        businessId: businessId, // This will create the relationship
         campaignType,
         campaignName: campaignName || `Campaign for ${(businessDetails as any).companyName}`,
-        campaignDescription,
+        campaignDescription: campaignDescription || '',
         status: 'draft',
+        // createdAt is handled automatically by the schema
       },
     })
 
+    console.log('✅ Ad campaign created:', adCampaign.id)
+
     // Update business registration status
+    console.log('📝 Updating business registration status...')
     await req.payload.update({
       collection: 'business-details',
       id: businessId,
@@ -346,6 +885,7 @@ export const createAdCampaign = async (req: PayloadRequest): Promise<Response> =
       },
     })
 
+    console.log('✅ Campaign setup completed successfully')
     return new Response(JSON.stringify({
       success: true,
       campaignId: adCampaign.id,
@@ -354,16 +894,24 @@ export const createAdCampaign = async (req: PayloadRequest): Promise<Response> =
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
+    
   } catch (error) {
-    console.error('Ad campaign creation error:', error)
-    return new Response(JSON.stringify({ error: 'Failed to create ad campaign' }), {
+    console.error('❌ Ad campaign creation error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    return new Response(JSON.stringify({ 
+      error: 'Failed to create ad campaign',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
   }
 }
 
-// 5. Get Available Subscription Plans
 export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Response> => {
   try {
     const plans = await req.payload.find({
@@ -390,39 +938,93 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
   }
 }
 
-// 6. Setup Payment and Budgeting
+// Updated setupPaymentBudgeting function with subscription plan integration
 export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
   try {
+    console.log('💳 Setting up payment plan...')
     const body = await parseRequestBody(req)
-    const { businessId, pricingTier, monthlyBudget, paymentMethod } = body
+    console.log('📝 Payment data received:', JSON.stringify(body, null, 2))
+    
+    const { businessId, subscriptionPlanId, monthlyBudget, paymentMethod } = body
 
+    // Validate required fields
+    if (!businessId) {
+      console.log('❌ Missing businessId')
+      return new Response(JSON.stringify({ error: 'Business ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!subscriptionPlanId) {
+      console.log('❌ Missing subscriptionPlanId')
+      return new Response(JSON.stringify({ error: 'Subscription plan is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('🔍 Looking up business details...')
     const businessDetails = await req.payload.findByID({
       collection: 'business-details',
       id: businessId,
     })
 
     if (!businessDetails) {
+      console.log('❌ Business not found')
       return new Response(JSON.stringify({ error: 'Business not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
+    console.log('📋 Looking up subscription plan...')
+    const subscriptionPlan = await req.payload.findByID({
+      collection: 'subscription-plans',
+      id: subscriptionPlanId,
+    })
+
+    if (!subscriptionPlan) {
+      console.log('❌ Subscription plan not found')
+      return new Response(JSON.stringify({ error: 'Subscription plan not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Map subscription plan to pricing tier with proper typing
+    const planTierMapping: { [key: string]: 'starter' | 'standard' | 'pro' } = {
+      'starter': 'starter',
+      'standard': 'standard', 
+      'pro': 'pro',
+      // Add more mappings based on your subscription plan names
+    }
+
+    const planName = (subscriptionPlan as any).name?.toLowerCase() || (subscriptionPlan as any).planType?.toLowerCase()
+    const pricingTier: 'starter' | 'standard' | 'pro' = planTierMapping[planName] || 'starter'
+
+    console.log(`📊 Mapping plan "${planName}" to pricing tier "${pricingTier}"`)
+
+    console.log('💰 Creating payment budgeting record...')
+
     // Create payment budgeting record
     const paymentBudgeting = await req.payload.create({
       collection: 'payment-budgeting',
       data: {
-        businessId,
+        businessId: businessId, // This will create the relationship
         pricingTier,
-        monthlyBudget,
-        paymentMethod,
+        monthlyBudget: monthlyBudget ? parseFloat(monthlyBudget) : 0,
+        paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
         paymentStatus: 'pending',
         subscriptionStartDate: new Date().toISOString(),
-        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
     })
 
+    console.log('✅ Payment budgeting created:', paymentBudgeting.id)
+
     // Update business registration status
+    console.log('📝 Updating business registration status...')
     await req.payload.update({
       collection: 'business-details',
       id: businessId,
@@ -431,17 +1033,32 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       },
     })
 
+    console.log('✅ Payment setup completed successfully')
     return new Response(JSON.stringify({
       success: true,
       paymentId: paymentBudgeting.id,
-      message: 'Payment plan selected',
+      message: 'Payment plan selected successfully',
+      selectedPlan: {
+        id: subscriptionPlan.id,
+        name: (subscriptionPlan as any).name,
+        tier: pricingTier
+      },
       nextStep: 'submission_confirmation',
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
+    
   } catch (error) {
-    console.error('Payment setup error:', error)
-    return new Response(JSON.stringify({ error: 'Failed to setup payment plan' }), {
+    console.error('❌ Payment setup error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    return new Response(JSON.stringify({ 
+      error: 'Failed to setup payment plan',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })

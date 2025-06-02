@@ -62,9 +62,30 @@ export const BusinessDetails: CollectionConfig = {
       defaultValue: () => new Date(),
     },
     {
-        name: 'verificationCodeExpiry',
-        type: 'date',
-        defaultValue: () => new Date(),
+      name: 'lastLogin',
+      type: 'date',
+    },
+    {
+      name: 'lastLogout', 
+      type: 'date',
+    },
+    {
+      name: 'passwordResetToken',
+      type: 'text',
+    },
+    {
+      name: 'passwordResetExpiry',
+      type: 'date',
+    },
+    {
+      name: 'passwordChangedAt',
+      type: 'date',
+    },
+    {
+      name: 'verificationCodeExpiry',
+      type: 'date',
+    defaultValue: () => new Date(),
       },
+
   ],
 }
