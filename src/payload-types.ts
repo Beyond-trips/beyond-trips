@@ -72,6 +72,10 @@ export interface Config {
     'ad-campaigns': AdCampaign;
     'payment-budgeting': PaymentBudgeting;
     'subscription-plans': SubscriptionPlan;
+    'user-documents': UserDocument;
+    'user-bank-details': UserBankDetail;
+    'user-training': UserTraining;
+    'user-onboarding': UserOnboarding;
     media: Media;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -84,6 +88,10 @@ export interface Config {
     'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
     'payment-budgeting': PaymentBudgetingSelect<false> | PaymentBudgetingSelect<true>;
     'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
+    'user-documents': UserDocumentsSelect<false> | UserDocumentsSelect<true>;
+    'user-bank-details': UserBankDetailsSelect<false> | UserBankDetailsSelect<true>;
+    'user-training': UserTrainingSelect<false> | UserTrainingSelect<true>;
+    'user-onboarding': UserOnboardingSelect<false> | UserOnboardingSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -132,6 +140,26 @@ export interface User {
   emailVerified?: boolean | null;
   otp?: string | null;
   otpExpiry?: string | null;
+  /**
+   * Collected during onboarding
+   */
+  firstName?: string | null;
+  /**
+   * Collected during onboarding
+   */
+  lastName?: string | null;
+  /**
+   * Contact number collected during onboarding
+   */
+  phoneNumber?: string | null;
+  /**
+   * Home address collected during onboarding
+   */
+  address?: string | null;
+  /**
+   * who referred user
+   */
+  references?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -228,6 +256,21 @@ export interface SubscriptionPlan {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-documents".
+ */
+export interface UserDocument {
+  id: string;
+  userId: string | User;
+  documentType: 'drivers_license' | 'national_id' | 'vehicle_registration';
+  documentFile: string | Media;
+  verificationStatus?: ('pending' | 'approved' | 'rejected') | null;
+  rejectionReason?: string | null;
+  uploadedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -246,6 +289,87 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-bank-details".
+ */
+export interface UserBankDetail {
+  id: string;
+  userId: string | User;
+  bankName:
+    | 'access_bank'
+    | 'gtbank'
+    | 'first_bank'
+    | 'zenith_bank'
+    | 'uba'
+    | 'ecobank'
+    | 'stanbic_ibtc'
+    | 'fidelity_bank'
+    | 'union_bank'
+    | 'sterling_bank'
+    | 'wema_bank'
+    | 'fcmb'
+    | 'aaa_finance';
+  accountName: string;
+  accountNumber: string;
+  verificationStatus?: ('pending' | 'verified' | 'failed') | null;
+  verifiedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-training".
+ */
+export interface UserTraining {
+  id: string;
+  userId: string | User;
+  trainingVideos?:
+    | {
+        videoId: string;
+        videoTitle: string;
+        completed?: boolean | null;
+        completedAt?: string | null;
+        /**
+         * Watch time in seconds
+         */
+        watchTime?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  termsAccepted?: boolean | null;
+  termsAcceptedAt?: string | null;
+  trainingCompleted?: boolean | null;
+  trainingCompletedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-onboarding".
+ */
+export interface UserOnboarding {
+  id: string;
+  userId: string | User;
+  currentStep?: ('basic_details' | 'document_upload' | 'bank_payment' | 'training' | 'completed') | null;
+  stepsCompleted?:
+    | {
+        step?: ('basic_details' | 'document_upload' | 'bank_payment' | 'training' | 'completed') | null;
+        completedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  onboardingStatus?: ('in_progress' | 'pending_review' | 'approved' | 'rejected' | 'completed') | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  approvedAt?: string | null;
+  /**
+   * Internal notes for admin review
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -273,6 +397,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'subscription-plans';
         value: string | SubscriptionPlan;
+      } | null)
+    | ({
+        relationTo: 'user-documents';
+        value: string | UserDocument;
+      } | null)
+    | ({
+        relationTo: 'user-bank-details';
+        value: string | UserBankDetail;
+      } | null)
+    | ({
+        relationTo: 'user-training';
+        value: string | UserTraining;
+      } | null)
+    | ({
+        relationTo: 'user-onboarding';
+        value: string | UserOnboarding;
       } | null)
     | ({
         relationTo: 'media';
@@ -330,6 +470,11 @@ export interface UsersSelect<T extends boolean = true> {
   emailVerified?: T;
   otp?: T;
   otpExpiry?: T;
+  firstName?: T;
+  lastName?: T;
+  phoneNumber?: T;
+  address?: T;
+  references?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -410,6 +555,79 @@ export interface SubscriptionPlansSelect<T extends boolean = true> {
         id?: T;
       };
   isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-documents_select".
+ */
+export interface UserDocumentsSelect<T extends boolean = true> {
+  userId?: T;
+  documentType?: T;
+  documentFile?: T;
+  verificationStatus?: T;
+  rejectionReason?: T;
+  uploadedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-bank-details_select".
+ */
+export interface UserBankDetailsSelect<T extends boolean = true> {
+  userId?: T;
+  bankName?: T;
+  accountName?: T;
+  accountNumber?: T;
+  verificationStatus?: T;
+  verifiedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-training_select".
+ */
+export interface UserTrainingSelect<T extends boolean = true> {
+  userId?: T;
+  trainingVideos?:
+    | T
+    | {
+        videoId?: T;
+        videoTitle?: T;
+        completed?: T;
+        completedAt?: T;
+        watchTime?: T;
+        id?: T;
+      };
+  termsAccepted?: T;
+  termsAcceptedAt?: T;
+  trainingCompleted?: T;
+  trainingCompletedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-onboarding_select".
+ */
+export interface UserOnboardingSelect<T extends boolean = true> {
+  userId?: T;
+  currentStep?: T;
+  stepsCompleted?:
+    | T
+    | {
+        step?: T;
+        completedAt?: T;
+        id?: T;
+      };
+  onboardingStatus?: T;
+  startedAt?: T;
+  completedAt?: T;
+  approvedAt?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

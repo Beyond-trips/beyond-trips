@@ -811,106 +811,106 @@ export const resendVerificationCode = async (req: PayloadRequest): Promise<Respo
 
     
    // Updated createAdCampaign function with proper relationship handling
-export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
-  try {
-    console.log('🚀 Creating ad campaign...')
-    const body = await parseRequestBody(req)
-    console.log('📝 Campaign data received:', JSON.stringify(body, null, 2))
-    
-    const { businessId, campaignType, campaignName, campaignDescription } = body
-
-    // Validate required fields
-    if (!businessId) {
-      console.log('❌ Missing businessId')
-      return new Response(JSON.stringify({ error: 'Business ID is required' }), {
-        status: 400,
+   export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
+    try {
+      console.log('🚀 Creating ad campaign...')
+      const body = await parseRequestBody(req)
+      console.log('📝 Campaign data received:', JSON.stringify(body, null, 2))
+      
+      const { businessId, campaignType, campaignName, campaignDescription } = body
+  
+      // Validate required fields
+      if (!businessId) {
+        console.log('❌ Missing businessId')
+        return new Response(JSON.stringify({ error: 'Business ID is required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+  
+      if (!campaignType) {
+        console.log('❌ Missing campaignType')
+        return new Response(JSON.stringify({ error: 'Campaign type is required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+  
+      console.log('🔍 Looking up business details...')
+      const businessDetails = await req.payload.findByID({
+        collection: 'business-details',
+        id: businessId,
+      })
+  
+      if (!businessDetails) {
+        console.log('❌ Business not found')
+        return new Response(JSON.stringify({ error: 'Business not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+  
+      if (!(businessDetails as any).emailVerified) {
+        console.log('❌ Email not verified')
+        return new Response(JSON.stringify({ error: 'Email must be verified first' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+  
+      console.log('📊 Creating ad campaign record...')
+      
+      // Create ad campaign - businessId will be used as relationship
+      const adCampaign = await req.payload.create({
+        collection: 'ad-campaigns',
+        data: {
+          businessId: businessId, // This will create the relationship
+          campaignType,
+          campaignName: campaignName || `Campaign for ${(businessDetails as any).companyName}`,
+          campaignDescription: campaignDescription || '',
+          status: 'draft',
+          // createdAt is handled automatically by the schema
+        },
+      })
+  
+      console.log('✅ Ad campaign created:', adCampaign.id)
+  
+      // Update business registration status
+      console.log('📝 Updating business registration status...')
+      await req.payload.update({
+        collection: 'business-details',
+        id: businessId,
+        data: {
+          registrationStatus: 'campaign_setup',
+        },
+      })
+  
+      console.log('✅ Campaign setup completed successfully')
+      return new Response(JSON.stringify({
+        success: true,
+        campaignId: adCampaign.id,
+        message: 'Ad campaign created successfully',
+        nextStep: 'payment_setup',
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+    } catch (error) {
+      console.error('❌ Ad campaign creation error:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      
+      return new Response(JSON.stringify({ 
+        error: 'Failed to create ad campaign',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
-    if (!campaignType) {
-      console.log('❌ Missing campaignType')
-      return new Response(JSON.stringify({ error: 'Campaign type is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    console.log('🔍 Looking up business details...')
-    const businessDetails = await req.payload.findByID({
-      collection: 'business-details',
-      id: businessId,
-    })
-
-    if (!businessDetails) {
-      console.log('❌ Business not found')
-      return new Response(JSON.stringify({ error: 'Business not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    if (!(businessDetails as any).emailVerified) {
-      console.log('❌ Email not verified')
-      return new Response(JSON.stringify({ error: 'Email must be verified first' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    console.log('📊 Creating ad campaign record...')
-    
-    // Create ad campaign - businessId will be used as relationship
-    const adCampaign = await req.payload.create({
-      collection: 'ad-campaigns',
-      data: {
-        businessId: businessId, // This will create the relationship
-        campaignType,
-        campaignName: campaignName || `Campaign for ${(businessDetails as any).companyName}`,
-        campaignDescription: campaignDescription || '',
-        status: 'draft',
-        // createdAt is handled automatically by the schema
-      },
-    })
-
-    console.log('✅ Ad campaign created:', adCampaign.id)
-
-    // Update business registration status
-    console.log('📝 Updating business registration status...')
-    await req.payload.update({
-      collection: 'business-details',
-      id: businessId,
-      data: {
-        registrationStatus: 'campaign_setup',
-      },
-    })
-
-    console.log('✅ Campaign setup completed successfully')
-    return new Response(JSON.stringify({
-      success: true,
-      campaignId: adCampaign.id,
-      message: 'Ad campaign created successfully',
-      nextStep: 'payment_setup',
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
-    
-  } catch (error) {
-    console.error('❌ Ad campaign creation error:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-    
-    return new Response(JSON.stringify({ 
-      error: 'Failed to create ad campaign',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
   }
-}
 
 export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Response> => {
   try {
@@ -979,17 +979,42 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     }
 
     console.log('📋 Looking up subscription plan...')
-    const subscriptionPlan = await req.payload.findByID({
-      collection: 'subscription-plans',
-      id: subscriptionPlanId,
-    })
-
-    if (!subscriptionPlan) {
-      console.log('❌ Subscription plan not found')
-      return new Response(JSON.stringify({ error: 'Subscription plan not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
+    let subscriptionPlan
+    
+    try {
+      subscriptionPlan = await req.payload.findByID({
+        collection: 'subscription-plans',
+        id: subscriptionPlanId,
       })
+      console.log('📋 Found subscription plan:', subscriptionPlan)
+    } catch (error) {
+      console.log('❌ Subscription plan not found with ID:', subscriptionPlanId)
+      console.log('🔍 Trying to find by planType instead...')
+      
+      // Fallback: try to find by planType if ID doesn't work
+      const plansByType = await req.payload.find({
+        collection: 'subscription-plans',
+        where: {
+          planType: {
+            equals: subscriptionPlanId // In case frontend sends planType instead of ID
+          }
+        },
+        limit: 1
+      })
+      
+      if (plansByType.docs.length > 0) {
+        subscriptionPlan = plansByType.docs[0]
+        console.log('📋 Found subscription plan by type:', subscriptionPlan)
+      } else {
+        console.log('❌ No subscription plan found')
+        return new Response(JSON.stringify({ 
+          error: 'Subscription plan not found',
+          availablePlans: 'Use GET /api/partner/subscription-plans to see available plans'
+        }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
     }
 
     // Map subscription plan to pricing tier with proper typing

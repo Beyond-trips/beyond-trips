@@ -1,3 +1,4 @@
+// collections/Users.ts
 import type { CollectionConfig } from 'payload'
 
 export const Users: CollectionConfig = {
@@ -19,6 +20,7 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
   },
   fields: [
+    // Basic Auth Fields
     {
       name: 'username',
       type: 'text',
@@ -37,7 +39,8 @@ export const Users: CollectionConfig = {
       type: 'checkbox',
       defaultValue: false,
     },
-    // Add these OTP fields
+    
+    // OTP Fields (for email verification)
     {
       name: 'otp',
       type: 'text',
@@ -52,5 +55,48 @@ export const Users: CollectionConfig = {
         hidden: true, // Hide from admin UI for security
       },
     },
+
+    // === ONBOARDING PROFILE FIELDS ===
+    // These will be filled during the onboarding process
+    
+    // Personal Information
+    {
+      name: 'firstName',
+      type: 'text',
+      admin: {
+        description: 'Collected during onboarding',
+      },
+    },
+    {
+      name: 'lastName',
+      type: 'text',
+      admin: {
+        description: 'Collected during onboarding',
+      },
+    },
+    {
+      name: 'phoneNumber',
+      type: 'text',
+      admin: {
+        description: 'Contact number collected during onboarding',
+      },
+    },
+    {
+      name: 'address',
+      type: 'textarea',
+      admin: {
+        description: 'Home address collected during onboarding',
+      },
+    },
+
+    
+    {
+      name: 'references',
+      type: 'text',
+      admin: {
+        description: 'who referred user ',
+      },
+    },
+    
   ],
 }

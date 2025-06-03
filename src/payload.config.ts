@@ -10,6 +10,11 @@ import { SubscriptionPlans } from './collections/SubscriptionPlans'
 import { BusinessDetails } from './collections/BusinessDetails'
 import { AdCampaigns } from './collections/AdCampaigns'
 import { PaymentBudgeting } from './collections/PaymentBudgeting'
+import { UserDocuments } from './collections/UserDocuments'
+import { UserBankDetails } from './collections/UserBankDetails'
+import { UserTraining } from './collections/UserTraining'
+import { UserOnboarding } from './collections/UserOnboarding'
+
 
 import { 
   startPartnerRegistration,
@@ -24,9 +29,16 @@ import {
 
 import {
   generateUserOTP,
+  updateUserProfile,
   verifyUserOTP,
-  resendUserOTP
+  resendUserOTP,
+  getUserOnboardingStatus,
+  uploadUserDocuments,
+  saveUserBankDetails,
+  completeUserTraining,
+  completeUserOnboarding
 } from './endpoints/userVerification'
+
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -52,6 +64,10 @@ export default buildConfig({
     PaymentBudgeting,
     SubscriptionPlans,
     // Media collection for business logos, campaign images, etc.
+    UserDocuments,
+    UserBankDetails,
+    UserTraining,
+    UserOnboarding,
     {
       slug: 'media',
       upload: true,
@@ -146,6 +162,63 @@ export default buildConfig({
       method: 'post',
       handler: resendUserOTP,
     },
+    
+    // User Onboarding Endpoints
+    {
+      path: '/user/onboarding/status',
+      method: 'get',
+      handler: getUserOnboardingStatus,
+    },
+    {
+      path: '/user/onboarding/documents',
+      method: 'post',
+      handler: uploadUserDocuments,
+    },
+    {
+      path: '/user/onboarding/bank-details',
+      method: 'post',
+      handler: saveUserBankDetails,
+    },
+    {
+      path: '/user/onboarding/training',
+      method: 'post',
+      handler: completeUserTraining,
+    },
+    {
+      path: '/user/onboarding/complete',
+      method: 'post',
+      handler: completeUserOnboarding,
+    },
+    // User Onboarding Endpoints (5-step driver onboarding flow)
+    {
+      path: '/user/onboarding/status',
+      method: 'get',
+      handler: getUserOnboardingStatus,
+    },
+    {
+      path: '/user/onboarding/profile',
+      method: 'post',
+      handler: updateUserProfile,
+    },
+    {
+      path: '/user/onboarding/documents',
+      method: 'post',
+      handler: uploadUserDocuments,
+    },
+    {
+      path: '/user/onboarding/bank-details',
+      method: 'post',
+      handler: saveUserBankDetails,
+    },
+    {
+      path: '/user/onboarding/training',
+      method: 'post',
+      handler: completeUserTraining,
+    },
+    {
+      path: '/user/onboarding/complete',
+      method: 'post',
+      handler: completeUserOnboarding,
+    },
   ],
 })
-
