@@ -1,215 +1,68 @@
 #!/bin/bash
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Debug Payment Setup Issue
+# Test with more detailed error reporting
 
-BASE_URL="http://localhost:3000"
+BASE_URL="https://beyond-trips-backend2.onrender.com"
+BUSINESS_ID="683e4d862e464dad2bce1c5a"  # From your test
+PLAN_ID="6831d8ebb4993d6c1912f90c"      # From your test
 
-show_menu() {
-    echo -e "\n${BLUE}Beyond Trips Test Helper${NC}"
-    echo "========================"
-    echo "1) Create test subscription plans"
-    echo "2) Create test user"
-    echo "3) Clean all test data"
-    echo "4) Show current data counts"
-    echo "5) Test specific endpoint"
-    echo "6) Exit"
-    echo -e "Select an option: \c"
-}
+echo "🔍 Debugging Payment Setup Issue"
+echo "Business ID: $BUSINESS_ID"
+echo "Plan ID: $PLAN_ID"
+echo ""
 
-create_subscription_plans() {
-    echo -e "\n${YELLOW}Creating subscription plans...${NC}"
-    
-    # Starter Plan
-    curl -s -X POST $BASE_URL/api/subscription-plans \
-        -H "Content-Type: application/json" \
-        -d '{
-            "planName": "Starter Plan",
-            "planType": "starter",
-            "price": 0,
-            "currency": "NGN",
-            "billingCycle": "monthly",
-            "description": "Perfect for small businesses just starting out",
-            "features": [
-                {"feature": "Up to 10 campaigns"},
-                {"feature": "Basic analytics"},
-                {"feature": "Email support"}
-            ],
-            "isActive": true
-        }' | jq '.'
-    
-    # Standard Plan
-    curl -s -X POST $BASE_URL/api/subscription-plans \
-        -H "Content-Type: application/json" \
-        -d '{
-            "planName": "Standard Plan",
-            "planType": "standard",
-            "price": 50000,
-            "currency": "NGN",
-            "billingCycle": "monthly",
-            "description": "For growing businesses",
-            "features": [
-                {"feature": "Up to 50 campaigns"},
-                {"feature": "Advanced analytics"},
-                {"feature": "Priority email support"},
-                {"feature": "Custom branding"}
-            ],
-            "isActive": true
-        }' | jq '.'
-    
-    # Pro Plan
-    curl -s -X POST $BASE_URL/api/subscription-plans \
-        -H "Content-Type: application/json" \
-        -d '{
-            "planName": "Pro Plan",
-            "planType": "pro",
-            "price": 150000,
-            "currency": "NGN",
-            "billingCycle": "monthly",
-            "description": "For enterprise businesses",
-            "features": [
-                {"feature": "Unlimited campaigns"},
-                {"feature": "Real-time analytics"},
-                {"feature": "24/7 phone support"},
-                {"feature": "Custom integrations"},
-                {"feature": "Dedicated account manager"}
-            ],
-            "isActive": true
-        }' | jq '.'
-    
-    echo -e "${GREEN}✓ Subscription plans created${NC}"
-}
+# Test 1: Verify the plan exists and get its details
+echo "=== 1. Checking Subscription Plan Details ==="
+PLAN_DETAILS=$(curl -s "$BASE_URL/api/partner/subscription-plans")
+echo "Plan response: $PLAN_DETAILS"
+echo ""
 
-create_test_user() {
-    echo -e "\n${YELLOW}Creating test user...${NC}"
-    
-    curl -s -X POST $BASE_URL/api/users \
-        -H "Content-Type: application/json" \
-        -d '{
-            "email": "testuser@example.com",
-            "password": "testPassword123",
-            "username": "testuser",
-            "role": "user",
-            "emailVerified": false
-        }' | jq '.'
-    
-    echo -e "${GREEN}✓ Test user created${NC}"
-}
+# Test 2: Check if business still exists and is verified
+echo "=== 2. Checking Business Status ==="
+BUSINESS_STATUS=$(curl -s "$BASE_URL/api/partner/status/$BUSINESS_ID")
+echo "Business status: $BUSINESS_STATUS"
+echo ""
 
-clean_test_data() {
-    echo -e "\n${RED}⚠️  This will delete all data in the following collections:${NC}"
-    echo "- business-details"
-    echo "- ad-campaigns"
-    echo "- payment-budgeting"
-    echo "- subscription-plans"
-    echo "- users (except admin)"
-    echo -e "\nAre you sure? (y/N): \c"
-    read -r response
-    
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        echo -e "\n${YELLOW}Cleaning test data...${NC}"
-        
-        # Note: This is a simplified version. In reality, you'd need to:
-        # 1. Get all IDs first
-        # 2. Delete each record individually
-        # Or implement a bulk delete endpoint
-        
-        echo "Please implement bulk delete endpoints or use Payload Admin UI"
-        echo -e "${YELLOW}Alternatively, you can reset the database${NC}"
-    else
-        echo "Cleanup cancelled"
-    fi
-}
+# Test 3: Try payment setup with verbose error details
+echo "=== 3. Testing Payment Setup with Debug ==="
+PAYMENT_RESPONSE=$(curl -s -X POST "$BASE_URL/api/partner/setup-payment" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"businessId\": \"$BUSINESS_ID\",
+    \"subscriptionPlanId\": \"$PLAN_ID\",
+    \"monthlyBudget\": 50000,
+    \"paymentMethod\": \"card\"
+  }")
 
-show_data_counts() {
-    echo -e "\n${YELLOW}Current Data Counts:${NC}"
-    
-    echo -n "Business Details: "
-    curl -s $BASE_URL/api/business-details | jq '.docs | length'
-    
-    echo -n "Ad Campaigns: "
-    curl -s $BASE_URL/api/ad-campaigns | jq '.docs | length'
-    
-    echo -n "Payment & Budgeting: "
-    curl -s $BASE_URL/api/payment-budgeting | jq '.docs | length'
-    
-    echo -n "Subscription Plans: "
-    curl -s $BASE_URL/api/subscription-plans | jq '.docs | length'
-    
-    echo -n "Users: "
-    curl -s $BASE_URL/api/users | jq '.docs | length'
-}
+echo "Payment response: $PAYMENT_RESPONSE"
+echo ""
 
-test_specific_endpoint() {
-    echo -e "\n${YELLOW}Select endpoint to test:${NC}"
-    echo "1) Start Partner Registration"
-    echo "2) Verify Email"
-    echo "3) Resend Verification Code"
-    echo "4) Create Ad Campaign"
-    echo "5) Get Subscription Plans"
-    echo "6) Setup Payment"
-    echo "7) Complete Registration"
-    echo "8) Get Registration Status"
-    echo "9) Generate User OTP"
-    echo "10) Verify User OTP"
-    echo -e "Select: \c"
-    read -r choice
-    
-    case $choice in
-        1)
-            echo -e "\n${YELLOW}Testing Partner Registration...${NC}"
-            curl -s -X POST $BASE_URL/api/partner/register \
-                -H "Content-Type: application/json" \
-                -d '{
-                    "companyEmail": "test'$(date +%s)'@example.com",
-                    "password": "testPassword123",
-                    "confirmPassword": "testPassword123",
-                    "companyName": "Test Company '$(date +%s)'",
-                    "companyAddress": "123 Test Street",
-                    "contact": "+234-123-456-7890",
-                    "industry": "Technology"
-                }' | jq '.'
-            ;;
-        2)
-            echo -e "Enter Business ID: \c"
-            read -r business_id
-            echo -e "Enter Verification Code: \c"
-            read -r code
-            curl -s -X POST $BASE_URL/api/partner/verify-email \
-                -H "Content-Type: application/json" \
-                -d "{
-                    \"businessId\": \"$business_id\",
-                    \"verificationCode\": \"$code\"
-                }" | jq '.'
-            ;;
-        # Add more cases as needed
-        *)
-            echo "Invalid choice"
-            ;;
-    esac
-}
+# Test 4: Try with different plan selection method (by planType)
+echo "=== 4. Testing Payment with planType instead of ID ==="
+PAYMENT_RESPONSE_2=$(curl -s -X POST "$BASE_URL/api/partner/setup-payment" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"businessId\": \"$BUSINESS_ID\",
+    \"subscriptionPlanId\": \"starter\",
+    \"monthlyBudget\": 50000,
+    \"paymentMethod\": \"card\"
+  }")
 
-# Main loop
-while true; do
-    show_menu
-    read -r choice
-    
-    case $choice in
-        1) create_subscription_plans ;;
-        2) create_test_user ;;
-        3) clean_test_data ;;
-        4) show_data_counts ;;
-        5) test_specific_endpoint ;;
-        6) 
-            echo -e "${GREEN}Goodbye!${NC}"
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Invalid option${NC}"
-            ;;
-    esac
-done
+echo "Payment response (with planType): $PAYMENT_RESPONSE_2"
+echo ""
+
+# Test 5: Check if payment-budgeting collection exists
+echo "=== 5. Potential Issues ==="
+echo "❓ Possible causes:"
+echo "   1. Payment-budgeting collection not created"
+echo "   2. Plan ID mismatch"
+echo "   3. Business verification state issue"
+echo "   4. Collection permissions"
+echo ""
+
+echo "💡 Solutions to try:"
+echo "   1. Check server logs for detailed error"
+echo "   2. Verify payment-budgeting collection exists"
+echo "   3. Check plan mapping logic"
+echo "   4. Test with planType instead of ID"

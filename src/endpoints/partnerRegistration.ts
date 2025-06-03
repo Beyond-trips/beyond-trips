@@ -1025,10 +1025,11 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       // Add more mappings based on your subscription plan names
     }
 
-    const planName = (subscriptionPlan as any).name?.toLowerCase() || (subscriptionPlan as any).planType?.toLowerCase()
-    const pricingTier: 'starter' | 'standard' | 'pro' = planTierMapping[planName] || 'starter'
+    // Get the planType from the subscription plan
+    const planType = (subscriptionPlan as any).planType?.toLowerCase()
+    const pricingTier: 'starter' | 'standard' | 'pro' = planTierMapping[planType] || 'starter'
 
-    console.log(`📊 Mapping plan "${planName}" to pricing tier "${pricingTier}"`)
+    console.log(`📊 Mapping plan type "${planType}" to pricing tier "${pricingTier}"`)
 
     console.log('💰 Creating payment budgeting record...')
 
@@ -1040,7 +1041,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
         pricingTier,
         monthlyBudget: monthlyBudget ? parseFloat(monthlyBudget) : 0,
         paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
-        paymentStatus: 'pending',
+        paymentStatus: 'pending' as 'pending',
         subscriptionStartDate: new Date().toISOString(),
         nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
