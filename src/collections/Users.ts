@@ -56,6 +56,29 @@ export const Users: CollectionConfig = {
       },
     },
 
+    // Password Reset Fields
+    {
+      name: 'passwordResetToken',
+      type: 'text',
+      admin: {
+        hidden: true, // Hide from admin UI for security
+      },
+    },
+    {
+      name: 'passwordResetExpiry',
+      type: 'date',
+      admin: {
+        hidden: true,
+      },
+    },
+    {
+      name: 'passwordChangedAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+      },
+    },
+
     // === ONBOARDING PROFILE FIELDS ===
     // These will be filled during the onboarding process
     
@@ -88,15 +111,12 @@ export const Users: CollectionConfig = {
         description: 'Home address collected during onboarding',
       },
     },
-
-    
     {
       name: 'references',
       type: 'text',
       admin: {
-        description: 'who referred user ',
+        description: 'who referred user',
       },
     },
-    
   ],
 }

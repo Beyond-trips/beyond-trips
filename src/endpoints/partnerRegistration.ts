@@ -938,7 +938,7 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
   }
 }
 
-// Updated setupPaymentBudgeting function with subscription plan integration
+// Updated setupPaymentBudgeting function with better error handling
 export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
   try {
     console.log('💳 Setting up payment plan...')
@@ -980,23 +980,33 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
 
     console.log('📋 Looking up subscription plan...')
     let subscriptionPlan
+    let pricingTier: 'starter' | 'standard' | 'pro' = 'starter'
     
     try {
+      // Try to find by ID first
       subscriptionPlan = await req.payload.findByID({
         collection: 'subscription-plans',
         id: subscriptionPlanId,
       })
-      console.log('📋 Found subscription plan:', subscriptionPlan)
+      
+      // Map planType to pricingTier
+      const planType = (subscriptionPlan as any).planType?.toLowerCase()
+      console.log('📊 Found plan with type:', planType)
+      
+      if (planType === 'starter') pricingTier = 'starter'
+      else if (planType === 'standard') pricingTier = 'standard'
+      else if (planType === 'pro') pricingTier = 'pro'
+      else pricingTier = 'starter' // fallback
+      
     } catch (error) {
-      console.log('❌ Subscription plan not found with ID:', subscriptionPlanId)
-      console.log('🔍 Trying to find by planType instead...')
+      console.log('❌ Plan lookup by ID failed, trying by planType...')
       
       // Fallback: try to find by planType if ID doesn't work
       const plansByType = await req.payload.find({
         collection: 'subscription-plans',
         where: {
           planType: {
-            equals: subscriptionPlanId // In case frontend sends planType instead of ID
+            equals: subscriptionPlanId.toLowerCase()
           }
         },
         limit: 1
@@ -1004,12 +1014,13 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       
       if (plansByType.docs.length > 0) {
         subscriptionPlan = plansByType.docs[0]
+        pricingTier = subscriptionPlanId.toLowerCase() as 'starter' | 'standard' | 'pro'
         console.log('📋 Found subscription plan by type:', subscriptionPlan)
       } else {
         console.log('❌ No subscription plan found')
         return new Response(JSON.stringify({ 
           error: 'Subscription plan not found',
-          availablePlans: 'Use GET /api/partner/subscription-plans to see available plans'
+          message: 'Please check the subscription plan ID or ensure plans exist in the system'
         }), {
           status: 404,
           headers: { 'Content-Type': 'application/json' }
@@ -1017,19 +1028,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       }
     }
 
-    // Map subscription plan to pricing tier with proper typing
-    const planTierMapping: { [key: string]: 'starter' | 'standard' | 'pro' } = {
-      'starter': 'starter',
-      'standard': 'standard', 
-      'pro': 'pro',
-      // Add more mappings based on your subscription plan names
-    }
-
-    // Get the planType from the subscription plan
-    const planType = (subscriptionPlan as any).planType?.toLowerCase()
-    const pricingTier: 'starter' | 'standard' | 'pro' = planTierMapping[planType] || 'starter'
-
-    console.log(`📊 Mapping plan type "${planType}" to pricing tier "${pricingTier}"`)
+    console.log(`📊 Using pricing tier: ${pricingTier}`)
 
     console.log('💰 Creating payment budgeting record...')
 
@@ -1037,9 +1036,9 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     const paymentBudgeting = await req.payload.create({
       collection: 'payment-budgeting',
       data: {
-        businessId: businessId, // This will create the relationship
+        businessId: businessId,
         pricingTier,
-        monthlyBudget: monthlyBudget ? parseFloat(monthlyBudget) : 0,
+        monthlyBudget: monthlyBudget ? parseFloat(monthlyBudget.toString()) : 0,
         paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
         paymentStatus: 'pending' as 'pending',
         subscriptionStartDate: new Date().toISOString(),
@@ -1066,8 +1065,8 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       message: 'Payment plan selected successfully',
       selectedPlan: {
         id: subscriptionPlan.id,
-        name: (subscriptionPlan as any).name,
-        tier: pricingTier
+        planType: (subscriptionPlan as any).planType,
+        pricingTier: pricingTier
       },
       nextStep: 'submission_confirmation',
     }), {
@@ -1083,7 +1082,8 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     
     return new Response(JSON.stringify({ 
       error: 'Failed to setup payment plan',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      message: 'Please ensure the subscription plan exists and payment-budgeting collection is properly configured'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

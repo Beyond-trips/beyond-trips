@@ -36,7 +36,11 @@ import {
   uploadUserDocuments,
   saveUserBankDetails,
   completeUserTraining,
-  completeUserOnboarding
+  completeUserOnboarding,
+  userForgotPassword,
+  userResetPassword,
+  verifyUserResetToken
+
 } from './endpoints/userVerification'
 
 
@@ -162,6 +166,22 @@ export default buildConfig({
       method: 'post',
       handler: resendUserOTP,
     },
+    {
+      path: '/user/forgot-password',
+      method: 'post',
+      handler: userForgotPassword,
+    },
+    {
+      path: '/user/verify-reset-token',
+      method: 'get',
+      handler: verifyUserResetToken,
+    },
+    {
+      path: '/user/reset-password',
+      method: 'post',
+      handler: userResetPassword,
+    },
+    
     
     // User Onboarding Endpoints
     {

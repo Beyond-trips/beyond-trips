@@ -140,6 +140,9 @@ export interface User {
   emailVerified?: boolean | null;
   otp?: string | null;
   otpExpiry?: string | null;
+  passwordResetToken?: string | null;
+  passwordResetExpiry?: string | null;
+  passwordChangedAt?: string | null;
   /**
    * Collected during onboarding
    */
@@ -312,6 +315,9 @@ export interface UserBankDetail {
     | 'fcmb'
     | 'aaa_finance';
   accountName: string;
+  /**
+   * Must be exactly 10 digits
+   */
   accountNumber: string;
   verificationStatus?: ('pending' | 'verified' | 'failed') | null;
   verifiedAt?: string | null;
@@ -470,6 +476,9 @@ export interface UsersSelect<T extends boolean = true> {
   emailVerified?: T;
   otp?: T;
   otpExpiry?: T;
+  passwordResetToken?: T;
+  passwordResetExpiry?: T;
+  passwordChangedAt?: T;
   firstName?: T;
   lastName?: T;
   phoneNumber?: T;
