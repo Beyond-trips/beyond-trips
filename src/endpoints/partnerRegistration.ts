@@ -940,6 +940,14 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
 
 export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
   try {
+    console.log('🚀 setupPaymentBudgeting function started')
+    console.log('📋 Request object keys:', Object.keys(req))
+    console.log('🔍 Request payload exists:', !!req.payload)
+    
+    console.log('💳 Setting up payment plan...')
+    
+    // Add debug before parseRequestBody
+    console.log('📝 About to parse request body...')
     console.log('💳 Setting up payment plan...')
     const body = await parseRequestBody(req)
     console.log('📝 Payment data received:', JSON.stringify(body, null, 2))
