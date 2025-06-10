@@ -1187,6 +1187,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
         collection: 'payment-budgeting',
         id: existingPayment.docs[0].id,
         data: {
+          businessId: businessId,
           pricingTier,
           monthlyBudget: monthlyPrice,
           paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,

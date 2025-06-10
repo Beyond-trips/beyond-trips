@@ -236,7 +236,7 @@ export interface PaymentBudgeting {
 export interface SubscriptionPlan {
   id: string;
   planName: string;
-  planType: 'starter' | 'standard' | 'pro';
+  planType: 'Starter' | 'Standard' | 'Pro';
   /**
    * Price in your currency (e.g., NGN)
    */

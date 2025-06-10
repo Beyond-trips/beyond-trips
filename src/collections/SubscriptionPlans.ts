@@ -22,9 +22,9 @@ export const SubscriptionPlans: CollectionConfig = {
       name: 'planType',
       type: 'select',
       options: [
-        { label: 'Starter', value: 'starter' },
-        { label: 'Standard', value: 'standard' },
-        { label: 'Pro', value: 'pro' },
+        { label: 'Starter', value: 'Starter' },
+        { label: 'Standard', value: 'Standard' },
+        { label: 'Pro', value: 'Pro' },
       ],
       required: true,
     },
