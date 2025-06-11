@@ -1180,6 +1180,11 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       },
       limit: 1
     })
+    console.log('🔍 Final debug before create:')
+    console.log('pricingTier value:', JSON.stringify(pricingTier))
+    console.log('pricingTier type:', typeof pricingTier)
+    console.log('Valid options: starter, standard, pro')
+    console.log('Does value match exactly?', ['starter', 'standard', 'pro'].includes(pricingTier))
 
     if (existingPayment.docs.length > 0) {
       console.log('⚠️ Payment budgeting already exists, updating instead...')
