@@ -1012,17 +1012,16 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
             collection: 'subscription-plans',
             id: subscriptionPlanId,
           })
-          console.log('✅ Found plan by ID:', {
+          console.log('✅ Found subscription plan by ID:', {
             id: subscriptionPlan.id,
-            planName: (subscriptionPlan as any).planName,
             planType: (subscriptionPlan as any).planType,
+            planName: (subscriptionPlan as any).planName,
             price: (subscriptionPlan as any).price
           })
           
-          // Map planType to pricingTier and get price
+          // Map planType to pricingTier
           const planType = (subscriptionPlan as any).planType?.toLowerCase()
-          const planPrice = (subscriptionPlan as any).price || 0
-          console.log('📊 Plan details:', { type: planType, price: planPrice })
+          console.log('📊 Plan type:', planType)
           
           if (planType === 'starter') pricingTier = 'starter'
           else if (planType === 'standard') pricingTier = 'standard'
@@ -1034,10 +1033,12 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
           
         } catch (planByIdError) {
           console.log('❌ Plan lookup by ID failed, trying by planType...')
-          throw planByIdError // Will be caught by outer try-catch
+          subscriptionPlan = null // Reset to trigger fallback
         }
-      } else {
-        // Method 2: subscriptionPlanId is likely a planType (starter/standard/pro)
+      }
+      
+      // Method 2: If not found by ID or ID is short, try by planType
+      if (!subscriptionPlan) {
         console.log('🔍 Treating subscriptionPlanId as planType:', subscriptionPlanId)
         
         const plansByType = await req.payload.find({
@@ -1068,12 +1069,10 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
             planType: (subscriptionPlan as any).planType,
             price: (subscriptionPlan as any).price
           })
-        } else {
-          throw new Error(`No active subscription plan found for type: ${subscriptionPlanId}`)
         }
       }
       
-      // If we still don't have a plan, try one more fallback
+      // Method 3: Final fallback - search all plans
       if (!subscriptionPlan) {
         console.log('🔍 Final fallback: searching all plans...')
         const allPlans = await req.payload.find({
@@ -1168,7 +1167,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     const monthlyPrice = (subscriptionPlan as any).price || 0
     console.log(`💰 Monthly price from plan: ₦${monthlyPrice}`)
 
-    // MOVED DEBUG CODE HERE - BEFORE THE DATABASE OPERATIONS
+    // Debug before create/update
     console.log('🔍 Final debug before create/update:')
     console.log('pricingTier value:', JSON.stringify(pricingTier))
     console.log('pricingTier type:', typeof pricingTier)
@@ -1202,7 +1201,6 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
         collection: 'payment-budgeting',
         id: existingPayment.docs[0].id,
         data: {
-          // ❌ REMOVED businessId - don't update relationship fields
           pricingTier: validPricingTier,
           monthlyBudget: monthlyPrice,
           paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
