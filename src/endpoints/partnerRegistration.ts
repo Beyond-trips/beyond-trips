@@ -1255,18 +1255,33 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
           nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         },
       })
-      console.log('✅ Payment budgeting created successfully:', paymentBudgeting.id)
-    } catch (createError) {
-      console.error('❌ Failed to create payment budgeting:', createError)
+          console.log('✅ Payment budgeting created successfully:', paymentBudgeting.id)
+        } catch (createError: any) {
+          console.error('❌ Failed to create payment budgeting:', createError)
+          
+          // Log the full error details
+          console.error('Error type:', createError.constructor.name)
+          console.error('Error message:', createError.message)
+          console.error('Error data:', JSON.stringify(createError.data, null, 2))
+          console.error('Error cause:', createError.cause)
+          
+      // If it's a validation error, log field-specific errors
+      if (createError.data && typeof createError.data === 'object') {
+        console.error('Field errors:')
+        Object.entries(createError.data).forEach(([field, error]) => {
+          console.error(`  ${field}:`, error)
+        })
+      }
       
-      // Check if it's a validation error
-      if (createError instanceof Error && createError.message.includes('validation')) {
+            // Return detailed error response
         return new Response(JSON.stringify({ 
           error: 'Validation failed when creating payment record',
-          details: createError.message,
-          data: {
+          message: createError.message,
+          fieldErrors: createError.data,
+          dataAttempted: {
             businessId: businessId,
             pricingTier: validPricingTier,
+            pricingTierType: typeof validPricingTier,
             monthlyBudget: monthlyPrice,
             paymentMethod: paymentMethod,
           }
@@ -1275,10 +1290,6 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
           headers: { 'Content-Type': 'application/json' }
         })
       }
-      
-      throw createError // Re-throw if it's not a validation error
-    }
-
     // Update business registration status
     console.log('📝 Updating business registration status...')
     try {
