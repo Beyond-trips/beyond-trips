@@ -948,7 +948,6 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     
     // Add debug before parseRequestBody
     console.log('📝 About to parse request body...')
-    console.log('💳 Setting up payment plan...')
     const body = await parseRequestBody(req)
     console.log('📝 Payment data received:', JSON.stringify(body, null, 2))
     
@@ -1169,6 +1168,20 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     const monthlyPrice = (subscriptionPlan as any).price || 0
     console.log(`💰 Monthly price from plan: ₦${monthlyPrice}`)
 
+    // MOVED DEBUG CODE HERE - BEFORE THE DATABASE OPERATIONS
+    console.log('🔍 Final debug before create/update:')
+    console.log('pricingTier value:', JSON.stringify(pricingTier))
+    console.log('pricingTier type:', typeof pricingTier)
+    console.log('Valid options: starter, standard, pro')
+    console.log('Does value match exactly?', ['starter', 'standard', 'pro'].includes(pricingTier))
+
+    // Ensure pricingTier is valid
+    const validPricingTier = ['starter', 'standard', 'pro'].includes(pricingTier) 
+      ? pricingTier 
+      : 'starter'; // Default fallback
+    
+    console.log('🔧 Using validated pricing tier:', validPricingTier)
+
     // Check if payment budgeting already exists for this business
     console.log('🔍 Checking for existing payment budgeting...')
     const existingPayment = await req.payload.find({
@@ -1180,20 +1193,17 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       },
       limit: 1
     })
-    console.log('🔍 Final debug before create:')
-    console.log('pricingTier value:', JSON.stringify(pricingTier))
-    console.log('pricingTier type:', typeof pricingTier)
-    console.log('Valid options: starter, standard, pro')
-    console.log('Does value match exactly?', ['starter', 'standard', 'pro'].includes(pricingTier))
 
     if (existingPayment.docs.length > 0) {
       console.log('⚠️ Payment budgeting already exists, updating instead...')
+      console.log('🔍 Existing payment ID:', existingPayment.docs[0].id)
+      
       const updatedPayment = await req.payload.update({
         collection: 'payment-budgeting',
         id: existingPayment.docs[0].id,
         data: {
-          businessId: businessId,
-          pricingTier,
+          // ❌ REMOVED businessId - don't update relationship fields
+          pricingTier: validPricingTier,
           monthlyBudget: monthlyPrice,
           paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
           paymentStatus: 'pending' as 'pending',
@@ -1213,7 +1223,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
           id: subscriptionPlan.id,
           planName: (subscriptionPlan as any).planName,
           planType: (subscriptionPlan as any).planType,
-          pricingTier: pricingTier,
+          pricingTier: validPricingTier,
           price: monthlyPrice,
           currency: (subscriptionPlan as any).currency
         },
@@ -1227,7 +1237,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     console.log('💰 Creating new payment budgeting record...')
     console.log('Data to create:', {
       businessId: businessId,
-      pricingTier,
+      pricingTier: validPricingTier,
       monthlyBudget: monthlyPrice,
       paymentMethod: paymentMethod,
       paymentStatus: 'pending',
@@ -1239,7 +1249,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
         collection: 'payment-budgeting',
         data: {
           businessId: businessId,
-          pricingTier,
+          pricingTier: validPricingTier,
           monthlyBudget: monthlyPrice,
           paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
           paymentStatus: 'pending' as 'pending',
@@ -1258,7 +1268,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
           details: createError.message,
           data: {
             businessId: businessId,
-            pricingTier,
+            pricingTier: validPricingTier,
             monthlyBudget: monthlyPrice,
             paymentMethod: paymentMethod,
           }
@@ -1297,7 +1307,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
         id: subscriptionPlan.id,
         planName: (subscriptionPlan as any).planName,
         planType: (subscriptionPlan as any).planType,
-        pricingTier: pricingTier,
+        pricingTier: validPricingTier,
         price: monthlyPrice,
         currency: (subscriptionPlan as any).currency
       },
