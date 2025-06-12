@@ -6,6 +6,12 @@ export const UserBankDetails: CollectionConfig = {
   admin: {
     useAsTitle: 'accountName',
   },
+  access: {
+    create: ({ req: { user } }) => !!user,
+    read: ({ req: { user } }) => !!user,
+    update: ({ req: { user } }) => !!user,
+    delete: ({ req: { user } }) => !!user,
+  },
   fields: [
     {
       name: 'userId',

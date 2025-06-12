@@ -567,9 +567,11 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
     }
 
     console.log('🏦 Saving bank details for user:', user.id)
+    console.log('📝 Bank data received:', JSON.stringify(body, null, 2))
 
     const { bankName, accountName, accountNumber } = body
 
+    // Basic validation
     if (!bankName || !accountName || !accountNumber) {
       return new Response(JSON.stringify({
         error: 'Bank name, account name, and account number are required'
@@ -579,10 +581,25 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
       })
     }
 
-    // Validate account number
-    if (accountNumber.length !== 10) {
+    // Clean account number (remove spaces and special characters)
+    const cleanAccountNumber = accountNumber.replace(/\D/g, '')
+    
+    // Validate account number length
+    if (cleanAccountNumber.length !== 10) {
       return new Response(JSON.stringify({
-        error: 'Account number must be 10 digits'
+        error: 'Account number must be exactly 10 digits',
+        provided: cleanAccountNumber,
+        length: cleanAccountNumber.length
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Validate account name length
+    if (accountName.trim().length < 2) {
+      return new Response(JSON.stringify({
+        error: 'Account name must be at least 2 characters long'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -594,35 +611,44 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
       collection: 'user-bank-details',
       where: {
         userId: { equals: user.id }
-      }
+      },
+      limit: 1
     })
 
     let bankDetailsRecord
 
     if (existingBankDetails.docs.length > 0) {
       // Update existing bank details
+      console.log('📝 Updating existing bank details:', existingBankDetails.docs[0].id)
+      
       bankDetailsRecord = await req.payload.update({
         collection: 'user-bank-details',
         id: existingBankDetails.docs[0].id,
         data: {
           bankName: bankName as any, // Type assertion for your bank options
-          accountName,
-          accountNumber,
+          accountName: accountName.trim(),
+          accountNumber: cleanAccountNumber,
           verificationStatus: 'pending' as 'pending'
         }
       })
+      
+      console.log('✅ Bank details updated successfully')
     } else {
       // Create new bank details record
+      console.log('📝 Creating new bank details record')
+      
       bankDetailsRecord = await req.payload.create({
         collection: 'user-bank-details',
         data: {
           userId: user.id,
           bankName: bankName as any, // Type assertion for your bank options
-          accountName,
-          accountNumber,
+          accountName: accountName.trim(),
+          accountNumber: cleanAccountNumber,
           verificationStatus: 'pending' as 'pending'
         }
       })
+      
+      console.log('✅ Bank details created successfully')
     }
 
     // Update onboarding status
@@ -631,15 +657,48 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
     return new Response(JSON.stringify({
       success: true,
       message: 'Bank details saved successfully',
-      bankDetails: bankDetailsRecord
+      bankDetails: {
+        id: bankDetailsRecord.id,
+        bankName: bankDetailsRecord.bankName,
+        accountName: bankDetailsRecord.accountName,
+        accountNumber: bankDetailsRecord.accountNumber,
+        verificationStatus: bankDetailsRecord.verificationStatus,
+        createdAt: bankDetailsRecord.createdAt,
+        updatedAt: bankDetailsRecord.updatedAt
+      }
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
     console.error('❌ Save bank details error:', error)
+    
+    // Enhanced error handling
+    if (error instanceof Error) {
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        return new Response(JSON.stringify({
+          error: 'Bank details already exist for this user',
+          details: error.message
+        }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      
+      if (error.message.includes('validation')) {
+        return new Response(JSON.stringify({
+          error: 'Validation failed',
+          details: error.message
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+    }
+    
     return new Response(JSON.stringify({
-      error: 'Failed to save bank details'
+      error: 'Failed to save bank details',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
