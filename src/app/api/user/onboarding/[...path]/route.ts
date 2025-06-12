@@ -2,6 +2,7 @@
 import { getPayload } from 'payload'
 import { NextRequest, NextResponse } from 'next/server'
 import config from '@payload-config'
+import jwt from 'jsonwebtoken'
 
 // Import user onboarding functions
 import {
@@ -18,7 +19,6 @@ export async function GET(
 ) {
   const { path } = await params
   const pathname = (path || []).join('/')
-  
   const payload = await getPayload({ config })
   
   // Get user from session/token
@@ -42,7 +42,6 @@ export async function GET(
     switch (pathname) {
       case 'status':
         return await getUserOnboardingStatus(payloadRequest as any)
-      
       default:
         return NextResponse.json({ error: 'Onboarding endpoint not found' }, { status: 404 })
     }
@@ -61,8 +60,37 @@ export async function POST(
 ) {
   const { path } = await params
   const pathname = (path || []).join('/')
-  
   const payload = await getPayload({ config })
+  
+  // ONLY ADD AUTH FOR BANK-DETAILS - INSIDE THE POST FUNCTION!
+  let user = null
+  if (pathname === 'bank-details') {
+    try {
+      const authHeader = req.headers.get('authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '')
+        
+        // Verify JWT token
+        const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
+        
+        // Get user from database
+        const users = await payload.find({
+          collection: 'users',
+          where: {
+            id: { equals: decoded.id }
+          },
+          limit: 1
+        })
+        
+        if (users.docs.length > 0) {
+          user = users.docs[0]
+          console.log('🏦 Bank details auth: User', user.email)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Bank details auth failed:', error)
+    }
+  }
   
   // Create the request object that onboarding functions expect
   const payloadRequest = {
@@ -80,23 +108,19 @@ export async function POST(
     body: req.body,
     url: req.url,
     method: req.method,
-    user: null, // This will be populated by Payload's auth middleware
+    user: user, // Now properly populated for bank-details only
   }
 
   try {
     switch (pathname) {
       case 'documents':
         return await uploadUserDocuments(payloadRequest as any)
-      
       case 'bank-details':
-        return await saveUserBankDetails(payloadRequest as any)
-      
+        return await saveUserBankDetails(payloadRequest as any) // Now has authenticated user
       case 'training':
         return await completeUserTraining(payloadRequest as any)
-      
       case 'complete':
         return await completeUserOnboarding(payloadRequest as any)
-      
       default:
         return NextResponse.json({
           error: 'Onboarding endpoint not found',
