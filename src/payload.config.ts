@@ -74,21 +74,7 @@ export default buildConfig({
     UserBankDetails,
     UserTraining,
     UserOnboarding,
-    {
-      slug: 'media',
-      upload: true,
-      fields: [
-        {
-          name: 'alt',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'caption',
-          type: 'text',
-        },
-      ],
-    },
+    
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
