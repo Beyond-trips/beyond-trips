@@ -70,8 +70,10 @@ export async function POST(
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '')
         
-        // Verify JWT token
+        // Verify JWT token using PAYLOAD_SECRET (same as in your config)
+        console.log('🔑 Using PAYLOAD_SECRET for verification')
         const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
+        console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
         
         // Get user from database
         const users = await payload.find({
