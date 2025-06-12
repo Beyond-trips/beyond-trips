@@ -14,6 +14,7 @@ import { UserDocuments } from './collections/UserDocuments'
 import { UserBankDetails } from './collections/UserBankDetails'
 import { UserTraining } from './collections/UserTraining'
 import { UserOnboarding } from './collections/UserOnboarding'
+import { Media } from './collections/Media'
 
 
 import { 
@@ -63,6 +64,7 @@ export default buildConfig({
   },
   collections: [
     Users,
+    Media,
     BusinessDetails,
     AdCampaigns,
     PaymentBudgeting,
