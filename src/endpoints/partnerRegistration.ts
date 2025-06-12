@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { sendPasswordResetEmail } from '../lib/email' 
 
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
@@ -341,11 +342,13 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
     if (!email) {
       return new Response(JSON.stringify({
         error: 'Email is required'
-      }), { 
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    console.log(`🔐 Password reset requested for: ${email}`)
 
     const partners = await req.payload.find({
       collection: 'business-details',
@@ -359,10 +362,10 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
 
     if (partners.docs.length > 0) {
       const partner = partners.docs[0]
-
       const resetToken = crypto.randomBytes(32).toString('hex')
-      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000)
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
+      // Update partner with reset token
       await req.payload.update({
         collection: 'business-details',
         id: partner.id,
@@ -373,11 +376,33 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
       })
 
       const resetUrl = `${process.env.FRONTEND_URL}/partners/reset-password?token=${resetToken}`
-      
-      console.log(`🔐 Password reset requested for: ${email}`)
-      console.log(`🔗 Reset URL: ${resetUrl}`)
+      console.log(`🔗 Reset URL generated: ${resetUrl}`)
+
+      // 🚀 USE YOUR EXISTING EMAIL SERVICE
+      try {
+        const emailResult = await sendPasswordResetEmail(
+          email,
+          resetUrl,
+          (partner as any).companyName || (partner as any).contactName || 'Partner'
+        )
+
+        if (emailResult.success) {
+          console.log(`✅ Password reset email sent successfully to: ${email}`)
+          console.log(`📧 Message ID: ${emailResult.messageId}`)
+        } else {
+          console.error('❌ Failed to send password reset email:', emailResult.error)
+          // Log the error but don't reveal to user for security
+        }
+
+      } catch (emailError) {
+        console.error('❌ Email service error:', emailError)
+        // Log the error but don't reveal to user for security
+      }
+    } else {
+      console.log(`⚠️ No partner found with email: ${email}`)
     }
 
+    // Always return success (security best practice - don't reveal if email exists)
     return new Response(JSON.stringify({
       success: true,
       message: 'If an account with that email exists, a password reset link has been sent.'
@@ -386,15 +411,16 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
     })
 
   } catch (error) {
-    console.error('Forgot password error:', error)
+    console.error('❌ Forgot password error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
-    }), { 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
   }
 }
+
 
 export const verifyResetToken = async (req: PayloadRequest): Promise<Response> => {
   try {
