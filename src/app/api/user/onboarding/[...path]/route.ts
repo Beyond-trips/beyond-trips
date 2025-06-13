@@ -70,63 +70,27 @@ export async function POST(
       const authHeader = req.headers.get('authorization')
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '')
-        
-        // DEBUG: Let's see what's happening
-        console.log('🔍 Debug JWT verification:');
-        console.log('📝 Token (first 50 chars):', token.substring(0, 50) + '...');
-        
-        // Decode without verification to see the payload
+
+        // ── New Payload-based JWT verification ──
         try {
-          const decoded = jwt.decode(token) as any;
-          console.log('🔓 Token payload (unverified):', {
-            id: decoded?.id,
-            email: decoded?.email,
-            collection: decoded?.collection,
-            iat: decoded?.iat ? new Date(decoded.iat * 1000).toISOString() : 'N/A',
-            exp: decoded?.exp ? new Date(decoded.exp * 1000).toISOString() : 'N/A'
-          });
-        } catch (e) {
-          console.log('❌ Token is malformed');
-        }
-        
-        // Check environment
-        console.log('🌍 Environment check:');
-        console.log('- PAYLOAD_SECRET exists:', !!process.env.PAYLOAD_SECRET);
-        console.log('- PAYLOAD_SECRET length:', process.env.PAYLOAD_SECRET?.length || 0);
-        console.log('- PAYLOAD_SECRET first 5 chars:', process.env.PAYLOAD_SECRET?.substring(0, 5) + '...');
-        console.log('- NODE_ENV:', process.env.NODE_ENV);
-        
-        // Try to verify with PAYLOAD_SECRET
-        try {
-          console.log('🔑 Attempting verification with PAYLOAD_SECRET...');
-          const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
-          console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
-          
-          // Rest of your existing code...
-          const users = await payload.find({
+          // use Payload’s own verifier (cast payload to any)
+          const decoded: any = await (payload as any).verifyJWT(token)
+          // load the user record
+          const userDoc = await payload.findByID({
             collection: 'users',
-            where: { id: { equals: decoded.id } },
-            limit: 1
+            id: decoded.id,
           })
-          
-          if (users.docs.length > 0) {
-            user = users.docs[0]
+          if (userDoc) {
+            user = userDoc
             console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
+          } else {
+            console.log('❌ User not found after verifyJWT')
           }
-        } catch (verifyError) {
-          const errorMessage = verifyError instanceof Error ? verifyError.message : 'Unknown error';
-          console.error('❌ Verification failed:', errorMessage);
-          
-          // Return more detailed error for debugging
+        } catch (verifyError: any) {
+          console.error('❌ Payload JWT verification failed:', verifyError.message)
           return NextResponse.json({
             error: 'Invalid or expired token',
-            details: errorMessage,
-            debug: {
-              message: 'Token verification failed',
-              tokenStart: token.substring(0, 20) + '...',
-              payloadSecretExists: !!process.env.PAYLOAD_SECRET,
-              payloadSecretLength: process.env.PAYLOAD_SECRET?.length || 0
-            }
+            details: verifyError.message,
           }, { status: 401 })
         }
       }
@@ -158,28 +122,39 @@ export async function POST(
     switch (pathname) {
       case 'documents':
         return await uploadUserDocuments(payloadRequest as any)
+
       case 'bank-details':
-        // Check if user is authenticated for bank-details
+        // ── BANK-DETAILS PROTECTED VIA Payload.verifyJWT ──
         if (!user) {
           return NextResponse.json({
             error: 'Authentication required',
             message: 'You must be logged in to save bank details'
           }, { status: 401 })
         }
-        return await saveUserBankDetails(payloadRequest as any)
+        // pass the authenticated user into the handler
+        return await saveUserBankDetails({
+          ...payloadRequest,
+          user,
+        } as any)
+
       case 'training':
         return await completeUserTraining(payloadRequest as any)
+
       case 'complete':
         return await completeUserOnboarding(payloadRequest as any)
+
       case 'profile':
-        // Check if user is authenticated for profile
         if (!user) {
           return NextResponse.json({
             error: 'Authentication required',
             message: 'You must be logged in to update profile'
           }, { status: 401 })
         }
-        return await updateUserProfile(payloadRequest as any)
+        return await updateUserProfile({
+          ...payloadRequest,
+          user,
+        } as any)
+
       default:
         return NextResponse.json({
           error: 'Onboarding endpoint not found',
