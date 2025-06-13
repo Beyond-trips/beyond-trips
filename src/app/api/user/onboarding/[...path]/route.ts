@@ -71,38 +71,67 @@ export async function POST(
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '')
         
-        // IMPORTANT: Use PAYLOAD_SECRET for Payload-generated tokens
-        console.log('🔑 Using PAYLOAD_SECRET for Payload-generated token verification')
-        const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
-        console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
+        // DEBUG: Let's see what's happening
+        console.log('🔍 Debug JWT verification:');
+        console.log('📝 Token (first 50 chars):', token.substring(0, 50) + '...');
         
-        // Get user from database
-        const users = await payload.find({
-          collection: 'users',
-          where: {
-            id: { equals: decoded.id }
-          },
-          limit: 1
-        })
-        
-        if (users.docs.length > 0) {
-          user = users.docs[0]
-          console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
-        } else {
-          console.log('⚠️ User not found in database for ID:', decoded.id)
+        // Decode without verification to see the payload
+        try {
+          const decoded = jwt.decode(token) as any;
+          console.log('🔓 Token payload (unverified):', {
+            id: decoded?.id,
+            email: decoded?.email,
+            collection: decoded?.collection,
+            iat: decoded?.iat ? new Date(decoded.iat * 1000).toISOString() : 'N/A',
+            exp: decoded?.exp ? new Date(decoded.exp * 1000).toISOString() : 'N/A'
+          });
+        } catch (e) {
+          console.log('❌ Token is malformed');
         }
-      } else {
-        console.log('⚠️ No Bearer token found in authorization header')
+        
+        // Check environment
+        console.log('🌍 Environment check:');
+        console.log('- PAYLOAD_SECRET exists:', !!process.env.PAYLOAD_SECRET);
+        console.log('- PAYLOAD_SECRET length:', process.env.PAYLOAD_SECRET?.length || 0);
+        console.log('- PAYLOAD_SECRET first 5 chars:', process.env.PAYLOAD_SECRET?.substring(0, 5) + '...');
+        console.log('- NODE_ENV:', process.env.NODE_ENV);
+        
+        // Try to verify with PAYLOAD_SECRET
+        try {
+          console.log('🔑 Attempting verification with PAYLOAD_SECRET...');
+          const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
+          console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
+          
+          // Rest of your existing code...
+          const users = await payload.find({
+            collection: 'users',
+            where: { id: { equals: decoded.id } },
+            limit: 1
+          })
+          
+          if (users.docs.length > 0) {
+            user = users.docs[0]
+            console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
+          }
+        } catch (verifyError) {
+          const errorMessage = verifyError instanceof Error ? verifyError.message : 'Unknown error';
+          console.error('❌ Verification failed:', errorMessage);
+          
+          // Return more detailed error for debugging
+          return NextResponse.json({
+            error: 'Invalid or expired token',
+            details: errorMessage,
+            debug: {
+              message: 'Token verification failed',
+              tokenStart: token.substring(0, 20) + '...',
+              payloadSecretExists: !!process.env.PAYLOAD_SECRET,
+              payloadSecretLength: process.env.PAYLOAD_SECRET?.length || 0
+            }
+          }, { status: 401 })
+        }
       }
     } catch (error) {
-      console.error('❌ Auth failed for', pathname, ':', error)
-      // For authenticated endpoints, return 401 if auth fails
-      if (error instanceof jwt.JsonWebTokenError) {
-        return NextResponse.json({
-          error: 'Invalid or expired token',
-          details: error.message
-        }, { status: 401 })
-      }
+      console.error('❌ Auth error:', error)
     }
   }
   
