@@ -10,7 +10,8 @@ import {
   uploadUserDocuments,
   saveUserBankDetails,
   completeUserTraining,
-  completeUserOnboarding
+  completeUserOnboarding,
+  updateUserProfile
 } from '../../../../../endpoints/userVerification'
 
 export async function GET(
@@ -62,17 +63,18 @@ export async function POST(
   const pathname = (path || []).join('/')
   const payload = await getPayload({ config })
   
-  // ONLY ADD AUTH FOR BANK-DETAILS - INSIDE THE POST FUNCTION!
+  // ONLY ADD AUTH FOR BANK-DETAILS AND PROFILE - INSIDE THE POST FUNCTION!
   let user = null
-  if (pathname === 'bank-details') {
+  if (pathname === 'bank-details' || pathname === 'profile') {
     try {
       const authHeader = req.headers.get('authorization')
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '')
         
-        // Verify JWT token using PAYLOAD_SECRET (same as in your config)
-        console.log('🔑 Using PAYLOAD_SECRET for verification')
-        const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
+        // IMPORTANT: Use JWT_SECRET instead of PAYLOAD_SECRET
+        // This matches how tokens are created in your system
+        console.log('🔑 Using JWT_SECRET for verification')
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
         console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
         
         // Get user from database
@@ -86,11 +88,22 @@ export async function POST(
         
         if (users.docs.length > 0) {
           user = users.docs[0]
-          console.log('🏦 Bank details auth: User', user.email)
+          console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
+        } else {
+          console.log('⚠️ User not found in database for ID:', decoded.id)
         }
+      } else {
+        console.log('⚠️ No Bearer token found in authorization header')
       }
     } catch (error) {
-      console.error('❌ Bank details auth failed:', error)
+      console.error('❌ Auth failed for', pathname, ':', error)
+      // For authenticated endpoints, return 401 if auth fails
+      if (error instanceof jwt.JsonWebTokenError) {
+        return NextResponse.json({
+          error: 'Invalid or expired token',
+          details: error.message
+        }, { status: 401 })
+      }
     }
   }
   
@@ -110,7 +123,7 @@ export async function POST(
     body: req.body,
     url: req.url,
     method: req.method,
-    user: user, // Now properly populated for bank-details only
+    user: user, // Now properly populated for bank-details and profile only
   }
 
   try {
@@ -118,11 +131,27 @@ export async function POST(
       case 'documents':
         return await uploadUserDocuments(payloadRequest as any)
       case 'bank-details':
-        return await saveUserBankDetails(payloadRequest as any) // Now has authenticated user
+        // Check if user is authenticated for bank-details
+        if (!user) {
+          return NextResponse.json({
+            error: 'Authentication required',
+            message: 'You must be logged in to save bank details'
+          }, { status: 401 })
+        }
+        return await saveUserBankDetails(payloadRequest as any)
       case 'training':
         return await completeUserTraining(payloadRequest as any)
       case 'complete':
         return await completeUserOnboarding(payloadRequest as any)
+      case 'profile':
+        // Check if user is authenticated for profile
+        if (!user) {
+          return NextResponse.json({
+            error: 'Authentication required',
+            message: 'You must be logged in to update profile'
+          }, { status: 401 })
+        }
+        return await updateUserProfile(payloadRequest as any)
       default:
         return NextResponse.json({
           error: 'Onboarding endpoint not found',
