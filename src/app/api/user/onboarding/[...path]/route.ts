@@ -63,8 +63,8 @@ export async function POST(
   const pathname = (path || []).join('/')
   const payload = await getPayload({ config })
 
-  // we only authenticate bank-details (and profile) here
   let user = null
+
   if (pathname === 'bank-details' || pathname === 'profile') {
     const authHeader = req.headers.get('authorization') || ''
     if (!authHeader.startsWith('Bearer ')) {
@@ -73,12 +73,20 @@ export async function POST(
         { status: 401 }
       )
     }
-    // build a minimal IncomingMessage for Payload.auth
-    const incoming: any = { headers: { authorization: authHeader } }
+
+    // Build a minimal Node IncomingMessage for payload.auth()
+    const incomingReq: any = {
+      headers: { authorization: authHeader },
+      get(headerName: string) {
+        // Express IncomingMessage .get() is case-insensitive
+        return this.headers[headerName.toLowerCase()]
+      },
+    }
+
     try {
-      // cast to any to call the runtime auth() method
+      // Cast to any so TS lets us call .auth()
       const result: any = await (payload as any).auth({
-        req: incoming,
+        req: incomingReq,
         res: {} as any,
       })
       if (!result.user) {
