@@ -55,6 +55,9 @@ export async function GET(
   }
 }
 
+// Update your route to use Payload's built-in auth
+// src/app/api/user/onboarding/[...path]/route.ts
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
@@ -62,50 +65,36 @@ export async function POST(
   const { path } = await params
   const pathname = (path || []).join('/')
   const payload = await getPayload({ config })
-
+  
+  // For authenticated routes, use Payload's auth
   let user = null
-
   if (pathname === 'bank-details' || pathname === 'profile') {
-    const authHeader = req.headers.get('authorization') || ''
-    if (!authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authentication required', message: 'Must include Bearer token' },
-        { status: 401 }
-      )
-    }
-
-    // Build a minimal Node IncomingMessage for payload.auth()
-    const incomingReq: any = {
-      headers: { authorization: authHeader },
-      get(headerName: string) {
-        // Express IncomingMessage .get() is case-insensitive
-        return this.headers[headerName.toLowerCase()]
-      },
-    }
-
     try {
-      // Cast to any so TS lets us call .auth()
-      const result: any = await (payload as any).auth({
-        req: incomingReq,
-        res: {} as any,
+      // Use Payload's built-in authentication
+      // Pass the NextRequest headers directly - they're already a Headers object
+      const authResult = await payload.auth({ 
+        headers: req.headers
       })
-      if (!result.user) {
-        return NextResponse.json(
-          { error: 'Invalid or expired token' },
-          { status: 401 }
-        )
+      
+      if (authResult.user) {
+        user = authResult.user
+        console.log('✅ Authenticated via Payload:', user.email)
+      } else {
+        console.log('❌ No authenticated user found')
+        return NextResponse.json({
+          error: 'Authentication required',
+          message: 'You must be logged in to save bank details'
+        }, { status: 401 })
       }
-      user = result.user
-      console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
-    } catch (err: any) {
-      console.error('❌ Payload auth() failed:', err.message)
-      return NextResponse.json(
-        { error: 'Authentication failed', details: err.message },
-        { status: 401 }
-      )
+    } catch (error) {
+      console.error('❌ Payload auth error:', error)
+      return NextResponse.json({
+        error: 'Authentication failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 401 })
     }
   }
-
+  
   // Create the request object that onboarding functions expect
   const payloadRequest = {
     payload,
@@ -122,38 +111,23 @@ export async function POST(
     body: req.body,
     url: req.url,
     method: req.method,
-    user, // Now populated for bank-details and profile only
+    user: user, // Now properly populated using Payload's auth
   }
 
   try {
     switch (pathname) {
       case 'documents':
         return await uploadUserDocuments(payloadRequest as any)
-
       case 'bank-details':
-        if (!user) {
-          return NextResponse.json({
-            error: 'Authentication required',
-            message: 'You must be logged in to save bank details'
-          }, { status: 401 })
-        }
+        // User is already authenticated above
         return await saveUserBankDetails(payloadRequest as any)
-
       case 'training':
         return await completeUserTraining(payloadRequest as any)
-
       case 'complete':
         return await completeUserOnboarding(payloadRequest as any)
-
       case 'profile':
-        if (!user) {
-          return NextResponse.json({
-            error: 'Authentication required',
-            message: 'You must be logged in to update profile'
-          }, { status: 401 })
-        }
+        // User is already authenticated above
         return await updateUserProfile(payloadRequest as any)
-
       default:
         return NextResponse.json({
           error: 'Onboarding endpoint not found',
