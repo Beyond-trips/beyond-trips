@@ -71,10 +71,9 @@ export async function POST(
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '')
         
-        // IMPORTANT: Use JWT_SECRET instead of PAYLOAD_SECRET
-        // This matches how tokens are created in your system
-        console.log('🔑 Using JWT_SECRET for verification')
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        // IMPORTANT: Use PAYLOAD_SECRET for Payload-generated tokens
+        console.log('🔑 Using PAYLOAD_SECRET for Payload-generated token verification')
+        const decoded = jwt.verify(token, process.env.PAYLOAD_SECRET || '') as any
         console.log('✅ JWT verified successfully:', { id: decoded.id, email: decoded.email })
         
         // Get user from database
