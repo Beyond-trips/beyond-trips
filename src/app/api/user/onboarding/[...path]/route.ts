@@ -62,43 +62,42 @@ export async function POST(
   const { path } = await params
   const pathname = (path || []).join('/')
   const payload = await getPayload({ config })
-  
-  // ONLY ADD AUTH FOR BANK-DETAILS AND PROFILE - INSIDE THE POST FUNCTION!
+
+  // we only authenticate bank-details (and profile) here
   let user = null
   if (pathname === 'bank-details' || pathname === 'profile') {
+    const authHeader = req.headers.get('authorization') || ''
+    if (!authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required', message: 'Must include Bearer token' },
+        { status: 401 }
+      )
+    }
+    // build a minimal IncomingMessage for Payload.auth
+    const incoming: any = { headers: { authorization: authHeader } }
     try {
-      const authHeader = req.headers.get('authorization')
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '')
-
-        // ── New Payload-based JWT verification ──
-        try {
-          // use Payload’s own verifier (cast payload to any)
-          const decoded: any = await (payload as any).verifyJWT(token)
-          // load the user record
-          const userDoc = await payload.findByID({
-            collection: 'users',
-            id: decoded.id,
-          })
-          if (userDoc) {
-            user = userDoc
-            console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
-          } else {
-            console.log('❌ User not found after verifyJWT')
-          }
-        } catch (verifyError: any) {
-          console.error('❌ Payload JWT verification failed:', verifyError.message)
-          return NextResponse.json({
-            error: 'Invalid or expired token',
-            details: verifyError.message,
-          }, { status: 401 })
-        }
+      // cast to any to call the runtime auth() method
+      const result: any = await (payload as any).auth({
+        req: incoming,
+        res: {} as any,
+      })
+      if (!result.user) {
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 401 }
+        )
       }
-    } catch (error) {
-      console.error('❌ Auth error:', error)
+      user = result.user
+      console.log('🏦 Auth successful for:', pathname, 'User:', user.email)
+    } catch (err: any) {
+      console.error('❌ Payload auth() failed:', err.message)
+      return NextResponse.json(
+        { error: 'Authentication failed', details: err.message },
+        { status: 401 }
+      )
     }
   }
-  
+
   // Create the request object that onboarding functions expect
   const payloadRequest = {
     payload,
@@ -115,7 +114,7 @@ export async function POST(
     body: req.body,
     url: req.url,
     method: req.method,
-    user: user, // Now properly populated for bank-details and profile only
+    user, // Now populated for bank-details and profile only
   }
 
   try {
@@ -124,18 +123,13 @@ export async function POST(
         return await uploadUserDocuments(payloadRequest as any)
 
       case 'bank-details':
-        // ── BANK-DETAILS PROTECTED VIA Payload.verifyJWT ──
         if (!user) {
           return NextResponse.json({
             error: 'Authentication required',
             message: 'You must be logged in to save bank details'
           }, { status: 401 })
         }
-        // pass the authenticated user into the handler
-        return await saveUserBankDetails({
-          ...payloadRequest,
-          user,
-        } as any)
+        return await saveUserBankDetails(payloadRequest as any)
 
       case 'training':
         return await completeUserTraining(payloadRequest as any)
@@ -150,10 +144,7 @@ export async function POST(
             message: 'You must be logged in to update profile'
           }, { status: 401 })
         }
-        return await updateUserProfile({
-          ...payloadRequest,
-          user,
-        } as any)
+        return await updateUserProfile(payloadRequest as any)
 
       default:
         return NextResponse.json({
