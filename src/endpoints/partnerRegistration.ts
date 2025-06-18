@@ -967,9 +967,8 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
 export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
   try {
     const body = await parseRequestBody(req)
-    const { businessId, subscriptionPlanId, paymentMethod } = body
+    const { businessId, subscriptionPlanId } = body
 
-    // Validate required fields
     if (!businessId || !subscriptionPlanId) {
       return new Response(JSON.stringify({ 
         error: 'Business ID and subscription plan are required' 
@@ -979,77 +978,34 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       })
     }
 
-    // Verify the subscription plan exists and get its price
-    const subscriptionPlan = await req.payload.findByID({
+    // Get plan name
+    const plan = await req.payload.findByID({
       collection: 'subscription-plans',
       id: subscriptionPlanId,
     })
 
-    if (!subscriptionPlan) {
-      return new Response(JSON.stringify({ 
-        error: 'Subscription plan not found' 
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const planName = plan ? (plan as any).planName : 'Unknown Plan'
 
-    const monthlyPrice = (subscriptionPlan as any).price || 0
-
-    // Check if payment already exists
-    const existingPayment = await req.payload.find({
+    // Save it
+    const result = await req.payload.create({
       collection: 'payment-budgeting',
-      where: {
-        businessId: { equals: businessId }
-      },
-      limit: 1
+      data: {
+        businessId: businessId,
+        selectedPlan: planName,
+      } as any,
     })
-
-    let result
-    const paymentData = {
-      businessId: businessId,
-      subscriptionPlan: subscriptionPlanId, // This is the relationship field
-      monthlyBudget: monthlyPrice,
-      paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
-      paymentStatus: 'pending' as const,
-      subscriptionStartDate: new Date().toISOString(),
-      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-
-    if (existingPayment.docs.length > 0) {
-      // Update existing
-      result = await req.payload.update({
-        collection: 'payment-budgeting',
-        id: existingPayment.docs[0].id,
-        data: paymentData,
-      })
-    } else {
-      // Create new
-      result = await req.payload.create({
-        collection: 'payment-budgeting',
-        data: paymentData,
-      })
-    }
 
     return new Response(JSON.stringify({
       success: true,
       paymentId: result.id,
-      message: 'Payment plan setup successfully',
-      selectedPlan: {
-        id: subscriptionPlan.id,
-        planName: (subscriptionPlan as any).planName,
-        planType: (subscriptionPlan as any).planType,
-        price: monthlyPrice,
-      }
+      selectedPlan: planName
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('Payment setup error:', error)
     return new Response(JSON.stringify({ 
-      error: 'Failed to setup payment plan',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to setup payment plan'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

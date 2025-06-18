@@ -241,12 +241,7 @@ export interface AdCampaign {
 export interface PaymentBudgeting {
   id: string;
   businessId: string | BusinessDetail;
-  subscriptionPlan: string | SubscriptionPlan;
-  monthlyBudget?: number | null;
-  paymentMethod?: ('card' | 'bank_transfer' | 'mobile_money') | null;
-  paymentStatus?: ('pending' | 'completed' | 'failed') | null;
-  subscriptionStartDate?: string | null;
-  nextBillingDate?: string | null;
+  selectedPlan: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -557,12 +552,7 @@ export interface AdCampaignsSelect<T extends boolean = true> {
  */
 export interface PaymentBudgetingSelect<T extends boolean = true> {
   businessId?: T;
-  subscriptionPlan?: T;
-  monthlyBudget?: T;
-  paymentMethod?: T;
-  paymentStatus?: T;
-  subscriptionStartDate?: T;
-  nextBillingDate?: T;
+  selectedPlan?: T;
   updatedAt?: T;
   createdAt?: T;
 }
