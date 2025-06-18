@@ -4,7 +4,7 @@ import type { CollectionConfig } from 'payload'
 export const PaymentBudgeting: CollectionConfig = {
   slug: 'payment-budgeting',
   admin: {
-    useAsTitle: 'pricingTier',
+    useAsTitle: 'id',
   },
   fields: [
     {
