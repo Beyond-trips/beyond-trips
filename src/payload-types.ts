@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    media: Media;
     'business-details': BusinessDetail;
     'ad-campaigns': AdCampaign;
     'payment-budgeting': PaymentBudgeting;
@@ -76,7 +77,6 @@ export interface Config {
     'user-bank-details': UserBankDetail;
     'user-training': UserTraining;
     'user-onboarding': UserOnboarding;
-    media: Media;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -84,6 +84,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
     'business-details': BusinessDetailsSelect<false> | BusinessDetailsSelect<true>;
     'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
     'payment-budgeting': PaymentBudgetingSelect<false> | PaymentBudgetingSelect<true>;
@@ -92,7 +93,6 @@ export interface Config {
     'user-bank-details': UserBankDetailsSelect<false> | UserBankDetailsSelect<true>;
     'user-training': UserTrainingSelect<false> | UserTrainingSelect<true>;
     'user-onboarding': UserOnboardingSelect<false> | UserOnboardingSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -176,6 +176,27 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt: string;
+  caption?: string | null;
+  _key?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "business-details".
  */
 export interface BusinessDetail {
@@ -220,7 +241,7 @@ export interface AdCampaign {
 export interface PaymentBudgeting {
   id: string;
   businessId: string | BusinessDetail;
-  pricingTier: 'starter' | 'standard' | 'pro';
+  subscriptionPlan: string | SubscriptionPlan;
   monthlyBudget?: number | null;
   paymentMethod?: ('card' | 'bank_transfer' | 'mobile_money') | null;
   paymentStatus?: ('pending' | 'completed' | 'failed') | null;
@@ -271,27 +292,6 @@ export interface UserDocument {
   uploadedAt?: string | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  caption?: string | null;
-  _key?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -389,6 +389,10 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
+        relationTo: 'media';
+        value: string | Media;
+      } | null)
+    | ({
         relationTo: 'business-details';
         value: string | BusinessDetail;
       } | null)
@@ -419,10 +423,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'user-onboarding';
         value: string | UserOnboarding;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: string | Media;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -496,6 +496,26 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  caption?: T;
+  _key?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "business-details_select".
  */
 export interface BusinessDetailsSelect<T extends boolean = true> {
@@ -537,7 +557,7 @@ export interface AdCampaignsSelect<T extends boolean = true> {
  */
 export interface PaymentBudgetingSelect<T extends boolean = true> {
   businessId?: T;
-  pricingTier?: T;
+  subscriptionPlan?: T;
   monthlyBudget?: T;
   paymentMethod?: T;
   paymentStatus?: T;
@@ -639,26 +659,6 @@ export interface UserOnboardingSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  caption?: T;
-  _key?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

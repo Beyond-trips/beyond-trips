@@ -979,7 +979,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       })
     }
 
-    // Get the subscription plan
+    // Verify the subscription plan exists and get its price
     const subscriptionPlan = await req.payload.findByID({
       collection: 'subscription-plans',
       id: subscriptionPlanId,
@@ -994,9 +994,6 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
       })
     }
 
-    // Get pricing tier - ALWAYS lowercase
-    const planType = (subscriptionPlan as any).planType
-    const pricingTier = planType.toLowerCase() as 'starter' | 'standard' | 'pro'
     const monthlyPrice = (subscriptionPlan as any).price || 0
 
     // Check if payment already exists
@@ -1011,7 +1008,7 @@ export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Respon
     let result
     const paymentData = {
       businessId: businessId,
-      pricingTier: pricingTier,
+      subscriptionPlan: subscriptionPlanId, // This is the relationship field
       monthlyBudget: monthlyPrice,
       paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
       paymentStatus: 'pending' as const,
