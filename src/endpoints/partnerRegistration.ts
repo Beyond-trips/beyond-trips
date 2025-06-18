@@ -966,428 +966,95 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
 
 export const setupPaymentBudgeting = async (req: PayloadRequest): Promise<Response> => {
   try {
-    console.log('🚀 setupPaymentBudgeting function started')
-    console.log('📋 Request object keys:', Object.keys(req))
-    console.log('🔍 Request payload exists:', !!req.payload)
-    
-    console.log('💳 Setting up payment plan...')
-    
-    // Add debug before parseRequestBody
-    console.log('📝 About to parse request body...')
     const body = await parseRequestBody(req)
-    console.log('📝 Payment data received:', JSON.stringify(body, null, 2))
-    
     const { businessId, subscriptionPlanId, paymentMethod } = body
 
-    // Enhanced validation with detailed error messages
-    if (!businessId) {
-      console.log('❌ Missing businessId')
+    // Validate required fields
+    if (!businessId || !subscriptionPlanId) {
       return new Response(JSON.stringify({ 
-        error: 'Business ID is required',
-        field: 'businessId',
-        received: body
+        error: 'Business ID and subscription plan are required' 
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    if (!subscriptionPlanId) {
-      console.log('❌ Missing subscriptionPlanId')
-      return new Response(JSON.stringify({ 
-        error: 'Subscription plan is required',
-        field: 'subscriptionPlanId',
-        received: body
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    // Get the subscription plan
+    const subscriptionPlan = await req.payload.findByID({
+      collection: 'subscription-plans',
+      id: subscriptionPlanId,
+    })
 
-    // Verify business exists first
-    console.log('🔍 Looking up business details for ID:', businessId)
-    let businessDetails
-    try {
-      businessDetails = await req.payload.findByID({
-        collection: 'business-details',
-        id: businessId,
-      })
-      console.log('✅ Business found:', { id: businessDetails.id, name: businessDetails.companyName })
-    } catch (businessError) {
-      console.log('❌ Business lookup failed:', businessError)
+    if (!subscriptionPlan) {
       return new Response(JSON.stringify({ 
-        error: 'Business not found or invalid ID',
-        businessId: businessId,
-        details: businessError instanceof Error ? businessError.message : 'Unknown error'
+        error: 'Subscription plan not found' 
       }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Enhanced subscription plan lookup with better error handling
-    console.log('📋 Looking up subscription plan for ID/Type:', subscriptionPlanId)
-    let subscriptionPlan
-    let pricingTier: 'starter' | 'standard' | 'pro' = 'starter'
-    
-    try {
-      // Method 1: Try finding by exact ID (if subscriptionPlanId is an actual ID)
-      if (subscriptionPlanId.length > 10) { // IDs are usually longer
-        try {
-          subscriptionPlan = await req.payload.findByID({
-            collection: 'subscription-plans',
-            id: subscriptionPlanId,
-          })
-          console.log('✅ Found subscription plan by ID:', {
-            id: subscriptionPlan.id,
-            planType: (subscriptionPlan as any).planType,
-            planName: (subscriptionPlan as any).planName,
-            price: (subscriptionPlan as any).price
-          })
-          
-          // Map planType to pricingTier
-          const planType = (subscriptionPlan as any).planType?.toLowerCase()
-          console.log('📊 Plan type:', planType)
-          
-          if (planType === 'starter') pricingTier = 'starter'
-          else if (planType === 'standard') pricingTier = 'standard'
-          else if (planType === 'pro') pricingTier = 'pro'
-          else {
-            console.log('⚠️ Unknown plan type, defaulting to starter')
-            pricingTier = 'starter'
-          }
-          
-        } catch (planByIdError) {
-          console.log('❌ Plan lookup by ID failed, trying by planType...')
-          subscriptionPlan = null // Reset to trigger fallback
-        }
-      }
-      
-      // Method 2: If not found by ID or ID is short, try by planType
-      if (!subscriptionPlan) {
-        console.log('🔍 Treating subscriptionPlanId as planType:', subscriptionPlanId)
-        
-        const plansByType = await req.payload.find({
-          collection: 'subscription-plans',
-          where: {
-            and: [
-              {
-                planType: {
-                  equals: subscriptionPlanId.toLowerCase()
-                }
-              },
-              {
-                isActive: {
-                  equals: true
-                }
-              }
-            ]
-          },
-          limit: 1
-        })
-        
-        if (plansByType.docs.length > 0) {
-          subscriptionPlan = plansByType.docs[0]
-          pricingTier = subscriptionPlanId.toLowerCase() as 'starter' | 'standard' | 'pro'
-          console.log('✅ Found subscription plan by type:', {
-            id: subscriptionPlan.id,
-            planName: (subscriptionPlan as any).planName,
-            planType: (subscriptionPlan as any).planType,
-            price: (subscriptionPlan as any).price
-          })
-        }
-      }
-      
-      // Method 3: Final fallback - search all plans
-      if (!subscriptionPlan) {
-        console.log('🔍 Final fallback: searching all plans...')
-        const allPlans = await req.payload.find({
-          collection: 'subscription-plans',
-          where: {
-            isActive: {
-              equals: true
-            }
-          },
-          limit: 100
-        })
-        
-        console.log('📋 Available active plans:', allPlans.docs.map(plan => ({
-          id: plan.id,
-          planName: (plan as any).planName,
-          planType: (plan as any).planType,
-          price: (plan as any).price,
-          isActive: (plan as any).isActive
-        })))
-        
-        // Try to find by planName or planType
-        const foundPlan = allPlans.docs.find(plan => 
-          (plan as any).planType?.toLowerCase() === subscriptionPlanId.toLowerCase() ||
-          (plan as any).planName?.toLowerCase().includes(subscriptionPlanId.toLowerCase()) ||
-          plan.id === subscriptionPlanId
-        )
-        
-        if (foundPlan) {
-          subscriptionPlan = foundPlan
-          pricingTier = (foundPlan as any).planType?.toLowerCase() as 'starter' | 'standard' | 'pro'
-          console.log('✅ Found plan via fallback search:', subscriptionPlan)
-        } else {
-          return new Response(JSON.stringify({ 
-            error: 'Subscription plan not found',
-            searchedFor: subscriptionPlanId,
-            availablePlans: allPlans.docs.map(plan => ({
-              id: plan.id,
-              planName: (plan as any).planName,
-              planType: (plan as any).planType,
-              price: (plan as any).price,
-              currency: (plan as any).currency,
-              isActive: (plan as any).isActive
-            })),
-            suggestion: 'Use one of the planType values (starter, standard, pro) or the actual plan ID'
-          }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-          })
-        }
-      }
-    } catch (planLookupError) {
-      console.error('❌ Complete plan lookup failure:', planLookupError)
-      
-      // List all available plans for debugging
-      try {
-        const allPlans = await req.payload.find({
-          collection: 'subscription-plans',
-          limit: 100
-        })
-        
-        return new Response(JSON.stringify({ 
-          error: 'Failed to find subscription plan',
-          searchedFor: subscriptionPlanId,
-          details: planLookupError instanceof Error ? planLookupError.message : 'Unknown error',
-          availablePlans: allPlans.docs.map(plan => ({
-            id: plan.id,
-            planName: (plan as any).planName,
-            planType: (plan as any).planType,
-            price: (plan as any).price,
-            currency: (plan as any).currency,
-            isActive: (plan as any).isActive
-          })),
-          suggestion: 'Use planType (starter/standard/pro) or the exact plan ID from the list above'
-        }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      } catch (listError) {
-        return new Response(JSON.stringify({ 
-          error: 'Failed to lookup subscription plans',
-          details: planLookupError instanceof Error ? planLookupError.message : 'Unknown error'
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-    }
-
-    console.log(`📊 Final pricing tier selected: ${pricingTier}`)
-
-    // Get the price from the subscription plan
+    // Get pricing tier - ALWAYS lowercase
+    const planType = (subscriptionPlan as any).planType
+    const pricingTier = planType.toLowerCase() as 'starter' | 'standard' | 'pro'
     const monthlyPrice = (subscriptionPlan as any).price || 0
-    console.log(`💰 Monthly price from plan: ₦${monthlyPrice}`)
 
-    // Debug before create/update
-    console.log('🔍 Final debug before create/update:')
-    console.log('pricingTier value:', JSON.stringify(pricingTier))
-    console.log('pricingTier type:', typeof pricingTier)
-    console.log('Valid options: starter, standard, pro')
-    console.log('Does value match exactly?', ['starter', 'standard', 'pro'].includes(pricingTier))
-
-    // Ensure pricingTier is valid
-    const validPricingTier = ['starter', 'standard', 'pro'].includes(pricingTier) 
-      ? pricingTier 
-      : 'starter'; // Default fallback
-    
-    console.log('🔧 Using validated pricing tier:', validPricingTier)
-
-    // Check if payment budgeting already exists for this business
-    console.log('🔍 Checking for existing payment budgeting...')
+    // Check if payment already exists
     const existingPayment = await req.payload.find({
       collection: 'payment-budgeting',
       where: {
-        businessId: {
-          equals: businessId
-        }
+        businessId: { equals: businessId }
       },
       limit: 1
     })
 
+    let result
+    const paymentData = {
+      businessId: businessId,
+      pricingTier: pricingTier,
+      monthlyBudget: monthlyPrice,
+      paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
+      paymentStatus: 'pending' as const,
+      subscriptionStartDate: new Date().toISOString(),
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+
     if (existingPayment.docs.length > 0) {
-      console.log('⚠️ Payment budgeting already exists, updating instead...')
-      console.log('🔍 Existing payment ID:', existingPayment.docs[0].id)
-      
-      const updatedPayment = await req.payload.update({
+      // Update existing
+      result = await req.payload.update({
         collection: 'payment-budgeting',
         id: existingPayment.docs[0].id,
-        data: {
-          pricingTier: validPricingTier,
-          monthlyBudget: monthlyPrice,
-          paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
-          paymentStatus: 'pending' as 'pending',
-          subscriptionStartDate: new Date().toISOString(),
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        },
+        data: paymentData,
       })
-      
-      console.log('✅ Payment budgeting updated:', updatedPayment.id)
-      
-      return new Response(JSON.stringify({
-        success: true,
-        paymentId: updatedPayment.id,
-        message: 'Payment plan updated successfully',
-        action: 'updated',
-        selectedPlan: {
-          id: subscriptionPlan.id,
-          planName: (subscriptionPlan as any).planName,
-          planType: (subscriptionPlan as any).planType,
-          pricingTier: validPricingTier,
-          price: monthlyPrice,
-          currency: (subscriptionPlan as any).currency
-        },
-        nextStep: 'submission_confirmation',
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Create new payment budgeting record
-    console.log('💰 Creating new payment budgeting record...')
-    console.log('Data to create:', {
-      businessId: businessId,
-      pricingTier: validPricingTier,
-      monthlyBudget: monthlyPrice,
-      paymentMethod: paymentMethod,
-      paymentStatus: 'pending',
-    })
-
-    let paymentBudgeting
-    try {
-      paymentBudgeting = await req.payload.create({
+    } else {
+      // Create new
+      result = await req.payload.create({
         collection: 'payment-budgeting',
-        data: {
-          businessId: businessId,
-          pricingTier: validPricingTier,
-          monthlyBudget: monthlyPrice,
-          paymentMethod: paymentMethod as 'card' | 'bank_transfer' | 'mobile_money' | undefined,
-          paymentStatus: 'pending' as 'pending',
-          subscriptionStartDate: new Date().toISOString(),
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        },
+        data: paymentData,
       })
-          console.log('✅ Payment budgeting created successfully:', paymentBudgeting.id)
-        } catch (createError: any) {
-          console.error('❌ Failed to create payment budgeting:', createError)
-          
-          // Log the full error details
-          console.error('Error type:', createError.constructor.name)
-          console.error('Error message:', createError.message)
-          console.error('Error data:', JSON.stringify(createError.data, null, 2))
-          console.error('Error cause:', createError.cause)
-          
-      // If it's a validation error, log field-specific errors
-      if (createError.data && typeof createError.data === 'object') {
-        console.error('Field errors:')
-        Object.entries(createError.data).forEach(([field, error]) => {
-          console.error(`  ${field}:`, error)
-        })
-      }
-      
-            // Return detailed error response
-        return new Response(JSON.stringify({ 
-          error: 'Validation failed when creating payment record',
-          message: createError.message,
-          fieldErrors: createError.data,
-          dataAttempted: {
-            businessId: businessId,
-            pricingTier: validPricingTier,
-            pricingTierType: typeof validPricingTier,
-            monthlyBudget: monthlyPrice,
-            paymentMethod: paymentMethod,
-          }
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-    // Update business registration status
-    console.log('📝 Updating business registration status...')
-    try {
-      await req.payload.update({
-        collection: 'business-details',
-        id: businessId,
-        data: {
-          registrationStatus: 'payment_setup',
-        },
-      })
-      console.log('✅ Business status updated to payment_setup')
-    } catch (updateError) {
-      console.error('⚠️ Failed to update business status:', updateError)
-      // Don't fail the whole operation for this
     }
 
-    console.log('✅ Payment setup completed successfully')
     return new Response(JSON.stringify({
       success: true,
-      paymentId: paymentBudgeting.id,
-      message: 'Payment plan selected successfully',
-      action: 'created',
+      paymentId: result.id,
+      message: 'Payment plan setup successfully',
       selectedPlan: {
         id: subscriptionPlan.id,
         planName: (subscriptionPlan as any).planName,
         planType: (subscriptionPlan as any).planType,
-        pricingTier: validPricingTier,
         price: monthlyPrice,
-        currency: (subscriptionPlan as any).currency
-      },
-      businessDetails: {
-        id: businessDetails.id,
-        name: businessDetails.companyName
-      },
-      nextStep: 'submission_confirmation',
+      }
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
-    
+
   } catch (error) {
-    console.error('❌ Payment setup error:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown'
-    })
-    
-    // Enhanced error response
-    let errorMessage = 'Failed to setup payment plan'
-    let statusCode = 500
-    
-    if (error instanceof Error) {
-      if (error.message.includes('validation')) {
-        errorMessage = 'Validation error in payment setup'
-        statusCode = 400
-      } else if (error.message.includes('not found')) {
-        errorMessage = 'Required resource not found'
-        statusCode = 404
-      } else if (error.message.includes('duplicate')) {
-        errorMessage = 'Payment plan already exists for this business'
-        statusCode = 409
-      }
-    }
-    
+    console.error('Payment setup error:', error)
     return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: error instanceof Error ? error.message : 'Unknown error',
-      type: error instanceof Error ? error.name : 'Unknown',
-      timestamp: new Date().toISOString(),
-      message: 'Check the logs above for detailed debugging information'
+      error: 'Failed to setup payment plan',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
-      status: statusCode,
+      status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
   }

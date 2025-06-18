@@ -14,13 +14,9 @@ export const PaymentBudgeting: CollectionConfig = {
       required: true,
     },
     {
-      name: 'pricingTier',
-      type: 'select',
-      options: [
-        { label: 'Starter - ₦0.00/month', value: 'starter' },
-        { label: 'Standard - ₦0.00/month', value: 'standard' },
-        { label: 'Pro - ₦0.00/month', value: 'pro' }
-      ],
+      name: 'subscriptionPlan',  // Add this field
+      type: 'relationship',
+      relationTo: 'subscription-plans',
       required: true,
     },
     {
