@@ -9,7 +9,6 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { sendPasswordResetEmail } from '../lib/email' 
 
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
@@ -367,28 +366,28 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
       const otp = crypto.randomInt(100000, 999999).toString()
       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
-      // Store OTP in verificationCode field (reusing existing field)
+      // Store OTP in verificationCode field
       await req.payload.update({
         collection: 'business-details',
         id: partner.id,
         data: {
           verificationCode: otp,
-          verificationCodeExpiry: otpExpiry.toISOString()
+          verificationCodeExpiry: otpExpiry.toISOString(),
+          // Clear any old reset tokens
+          passwordResetToken: null,
+          passwordResetExpiry: null
         }
       })
 
       console.log(`🔐 Generated OTP for ${email}: ${otp}`)
 
-      // Send OTP email
+      // Send OTP email (NOT password reset email!)
       try {
-        const { sendOTPEmail } = await import('../lib/email')
-        const emailResult = await sendOTPEmail(
-          email,
-          otp,
-        )
-
+        const emailResult = await sendOTPEmail(email, otp)
+        
         if (emailResult.success) {
           console.log(`✅ Password reset OTP sent to: ${email}`)
+          console.log(`📧 Message ID: ${emailResult.messageId}`)
         } else {
           console.error('❌ Failed to send OTP email:', emailResult.error)
         }
@@ -402,7 +401,7 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
     // Always return success for security
     return new Response(JSON.stringify({
       success: true,
-      message: 'If an account with that email exists, an OTP has been sent.'
+      message: 'If an account with that email exists, an OTP has been sent to reset your password.'
     }), {
       headers: { 'Content-Type': 'application/json' }
     })

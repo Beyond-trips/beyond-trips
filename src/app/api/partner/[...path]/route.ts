@@ -45,8 +45,7 @@ export async function GET(
       case 'me':
         return await me(payloadRequest as any)
       
-      case 'verify-reset-otp':
-        return await verifyPasswordResetOTP(payloadRequest as any)
+      
         
       default:
         if (pathname.startsWith('status/')) {
@@ -113,6 +112,8 @@ export async function POST(
         return await forgotPassword(payloadRequest as any)
       case 'reset-password':
         return await resetPassword(payloadRequest as any)
+      case 'verify-reset-otp':
+        return await verifyPasswordResetOTP(payloadRequest as any)
       default:
         return NextResponse.json({
           error: 'Partner endpoint not found',
