@@ -348,7 +348,7 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
       })
     }
 
-    console.log(`🔐 Password reset requested for: ${email}`)
+    console.log(`🔐 Password reset OTP requested for: ${email}`)
 
     const partners = await req.payload.find({
       collection: 'business-details',
@@ -362,50 +362,47 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
 
     if (partners.docs.length > 0) {
       const partner = partners.docs[0]
-      const resetToken = crypto.randomBytes(32).toString('hex')
-      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+      
+      // Generate 6-digit OTP
+      const otp = crypto.randomInt(100000, 999999).toString()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
-      // Update partner with reset token
+      // Store OTP in verificationCode field (reusing existing field)
       await req.payload.update({
         collection: 'business-details',
         id: partner.id,
         data: {
-          passwordResetToken: resetToken,
-          passwordResetExpiry: resetTokenExpiry.toISOString()
+          verificationCode: otp,
+          verificationCodeExpiry: otpExpiry.toISOString()
         }
       })
 
-      const resetUrl = `${process.env.FRONTEND_URL}/partners/reset-password?token=${resetToken}`
-      console.log(`🔗 Reset URL generated: ${resetUrl}`)
+      console.log(`🔐 Generated OTP for ${email}: ${otp}`)
 
-      // 🚀 USE YOUR EXISTING EMAIL SERVICE
+      // Send OTP email
       try {
-        const emailResult = await sendPasswordResetEmail(
+        const { sendOTPEmail } = await import('../lib/email')
+        const emailResult = await sendOTPEmail(
           email,
-          resetUrl,
-          (partner as any).companyName || (partner as any).contactName || 'Partner'
+          otp,
         )
 
         if (emailResult.success) {
-          console.log(`✅ Password reset email sent successfully to: ${email}`)
-          console.log(`📧 Message ID: ${emailResult.messageId}`)
+          console.log(`✅ Password reset OTP sent to: ${email}`)
         } else {
-          console.error('❌ Failed to send password reset email:', emailResult.error)
-          // Log the error but don't reveal to user for security
+          console.error('❌ Failed to send OTP email:', emailResult.error)
         }
-
       } catch (emailError) {
         console.error('❌ Email service error:', emailError)
-        // Log the error but don't reveal to user for security
       }
     } else {
       console.log(`⚠️ No partner found with email: ${email}`)
     }
 
-    // Always return success (security best practice - don't reveal if email exists)
+    // Always return success for security
     return new Response(JSON.stringify({
       success: true,
-      message: 'If an account with that email exists, a password reset link has been sent.'
+      message: 'If an account with that email exists, an OTP has been sent.'
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
@@ -421,16 +418,15 @@ export const forgotPassword = async (req: PayloadRequest): Promise<Response> => 
   }
 }
 
-
-export const verifyResetToken = async (req: PayloadRequest): Promise<Response> => {
+export const verifyPasswordResetOTP = async (req: PayloadRequest): Promise<Response> => {
   try {
-    const url = new URL(req.url || '')
-    const token = url.searchParams.get('token')
+    const body = await parseRequestBody(req)
+    const { email, otp } = body
 
-    if (!token) {
+    if (!email || !otp) {
       return new Response(JSON.stringify({
-        error: 'Reset token is required'
-      }), { 
+        error: 'Email and OTP are required'
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -441,12 +437,17 @@ export const verifyResetToken = async (req: PayloadRequest): Promise<Response> =
       where: {
         and: [
           {
-            passwordResetToken: {
-              equals: token
+            companyEmail: {
+              equals: email.toLowerCase()
             }
           },
           {
-            passwordResetExpiry: {
+            verificationCode: {
+              equals: otp
+            }
+          },
+          {
+            verificationCodeExpiry: {
               greater_than: new Date()
             }
           }
@@ -457,25 +458,40 @@ export const verifyResetToken = async (req: PayloadRequest): Promise<Response> =
 
     if (partners.docs.length === 0) {
       return new Response(JSON.stringify({
-        error: 'Invalid or expired reset token'
-      }), { 
+        error: 'Invalid or expired OTP'
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
+    // OTP is valid - generate a temporary token for password reset
+    const partner = partners.docs[0]
+    const tempToken = crypto.randomBytes(32).toString('hex')
+    
+    // Store temp token with 5 minute expiry
+    await req.payload.update({
+      collection: 'business-details',
+      id: partner.id,
+      data: {
+        passwordResetToken: tempToken,
+        passwordResetExpiry: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      }
+    })
+
     return new Response(JSON.stringify({
       success: true,
-      message: 'Reset token is valid'
+      message: 'OTP verified successfully',
+      resetToken: tempToken // Frontend will use this for the actual reset
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('Verify reset token error:', error)
+    console.error('Verify OTP error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
-    }), { 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
@@ -490,7 +506,7 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
     if (!token || !password || !confirmPassword) {
       return new Response(JSON.stringify({
         error: 'Token, password, and confirm password are required'
-      }), { 
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -499,7 +515,7 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
     if (password !== confirmPassword) {
       return new Response(JSON.stringify({
         error: 'Passwords do not match'
-      }), { 
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -508,7 +524,7 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
     if (password.length < 8) {
       return new Response(JSON.stringify({
         error: 'Password must be at least 8 characters long'
-      }), { 
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -536,14 +552,13 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
     if (partners.docs.length === 0) {
       return new Response(JSON.stringify({
         error: 'Invalid or expired reset token'
-      }), { 
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
     const partner = partners.docs[0]
-
     const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
@@ -554,6 +569,8 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
         password: hashedPassword,
         passwordResetToken: null,
         passwordResetExpiry: null,
+        verificationCode: null, // Clear the OTP
+        verificationCodeExpiry: null,
         passwordChangedAt: new Date().toISOString()
       }
     })
@@ -571,7 +588,7 @@ export const resetPassword = async (req: PayloadRequest): Promise<Response> => {
     console.error('Reset password error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
-    }), { 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })
@@ -835,7 +852,7 @@ export const resendVerificationCode = async (req: PayloadRequest): Promise<Respo
   }
 }; 
 
-    
+   
    // Updated createAdCampaign function with proper relationship handling
    export const createAdCampaign = async (req: PayloadRequest): Promise<Response> => {
     try {

@@ -19,7 +19,7 @@ import {
   updatePartnerProfile,
   forgotPassword,
   resetPassword,
-  verifyResetToken
+  verifyPasswordResetOTP
 } from '../../../../endpoints/partnerRegistration'
 
 export async function GET(
@@ -45,8 +45,8 @@ export async function GET(
       case 'me':
         return await me(payloadRequest as any)
       
-      case 'verify-reset-token':
-        return await verifyResetToken(payloadRequest as any)
+      case 'verify-reset-otp':
+        return await verifyPasswordResetOTP(payloadRequest as any)
         
       default:
         if (pathname.startsWith('status/')) {
