@@ -963,6 +963,7 @@ export const getSubscriptionPlans = async (req: PayloadRequest): Promise<Respons
           equals: true,
         },
       },
+      sort: 'price',
     })
 
     return new Response(JSON.stringify({
