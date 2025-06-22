@@ -12,7 +12,9 @@ import {
   completeUserTraining,
   completeUserOnboarding,
   updateUserProfile,
-  
+  userForgotPassword,
+  verifyUserPasswordResetOTP, // New function for OTP verification
+  userResetPassword,
 
 } from '../../../../../endpoints/userVerification'
 
@@ -130,7 +132,14 @@ export async function POST(
       case 'profile':
         // User is already authenticated above
         return await updateUserProfile(payloadRequest as any)
+      case 'forgot-password':
+        return await userForgotPassword(payloadRequest as any)
       
+      case 'verify-reset-otp': // NEW ENDPOINT
+        return await verifyUserPasswordResetOTP(payloadRequest as any)
+      
+      case 'reset-password':
+        return await userResetPassword(payloadRequest as any)
       default:
         return NextResponse.json({
           error: 'Onboarding endpoint not found',

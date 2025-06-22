@@ -161,7 +161,7 @@ export default buildConfig({
     },
     {
       path: '/user/verify-reset-otp',
-      method: 'get',
+      method: 'post',
       handler: verifyUserPasswordResetOTP,
     },
     {
