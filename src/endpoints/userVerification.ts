@@ -2,6 +2,8 @@
 
 import crypto from 'crypto'
 import type { PayloadRequest } from 'payload'
+import { sendOTPEmail } from '../lib/email'
+
 
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
@@ -888,20 +890,22 @@ export const completeUserOnboarding = async (req: PayloadRequest): Promise<Respo
 }
 
 
-// User forgot password
+// User forgot password - Using OTP like partner system
 export const userForgotPassword = async (req: PayloadRequest): Promise<Response> => {
   try {
     const body = await parseRequestBody(req)
     const { email } = body
 
-    console.log('🔐 User forgot password request for:', email)
-
     if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required' }), {
+      return new Response(JSON.stringify({
+        error: 'Email is required'
+      }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    console.log(`🔐 Password reset OTP requested for user: ${email}`)
 
     // Find user by email
     const users = await req.payload.find({
@@ -915,51 +919,55 @@ export const userForgotPassword = async (req: PayloadRequest): Promise<Response>
     })
 
     // Always return success to prevent email enumeration attacks
-    // But only send email if user exists
     if (users.docs.length > 0) {
       const user = users.docs[0] as any
+      
+      // Generate 6-digit OTP
+      const otp = crypto.randomInt(100000, 999999).toString()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
-      // Generate secure reset token
-      const resetToken = crypto.randomBytes(32).toString('hex')
-      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-
-      // Save reset token to database
+      // Store OTP in otp field (reusing the same field used for email verification)
       await req.payload.update({
         collection: 'users',
         id: user.id,
         data: {
-          passwordResetToken: resetToken,
-          passwordResetExpiry: resetTokenExpiry.toISOString()
+          otp: otp,
+          otpExpiry: otpExpiry.toISOString(),
+          // Clear any old reset tokens
+          passwordResetToken: null,
+          passwordResetExpiry: null
         }
       })
 
-      // Send password reset email
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`
-      
-      console.log(`🔐 Password reset requested for: ${email}`)
-      console.log(`🔗 Reset URL: ${resetUrl}`)
-      
+      console.log(`🔐 Generated OTP for user ${email}: ${otp}`)
+
+      // Send OTP email
       try {
-        const { sendPasswordResetEmail } = await import('../lib/email')
-        const emailResult = await sendPasswordResetEmail(email, resetUrl, user.firstName || 'User')
+        const emailResult = await sendOTPEmail(email, otp)
         
-        console.log('📧 Password reset email result:', emailResult)
+        if (emailResult.success) {
+          console.log(`✅ Password reset OTP sent to: ${email}`)
+          console.log(`📧 Message ID: ${emailResult.messageId}`)
+        } else {
+          console.error('❌ Failed to send OTP email:', emailResult.error)
+        }
       } catch (emailError) {
-        console.error('❌ Password reset email failed:', emailError)
-        // Continue anyway - user won't know if email failed
+        console.error('❌ Email service error:', emailError)
       }
+    } else {
+      console.log(`⚠️ No user found with email: ${email}`)
     }
 
-    // Always return the same response regardless of whether email exists
+    // Always return success for security
     return new Response(JSON.stringify({
       success: true,
-      message: 'If an account with that email exists, a password reset link has been sent.'
+      message: 'If an account with that email exists, an OTP has been sent to reset your password.'
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('User forgot password error:', error)
+    console.error('❌ User forgot password error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
     }), {
@@ -969,35 +977,40 @@ export const userForgotPassword = async (req: PayloadRequest): Promise<Response>
   }
 }
 
-// Verify reset token (optional endpoint to check if token is valid)
-export const verifyUserResetToken = async (req: PayloadRequest): Promise<Response> => {
+// Verify password reset OTP for users
+export const verifyUserPasswordResetOTP = async (req: PayloadRequest): Promise<Response> => {
   try {
-    const url = new URL(req.url || '')
-    const token = url.searchParams.get('token')
+    const body = await parseRequestBody(req)
+    const { email, otp } = body
 
-    console.log('🔍 Verifying user reset token:', token)
-
-    if (!token) {
+    if (!email || !otp) {
       return new Response(JSON.stringify({
-        error: 'Reset token is required'
+        error: 'Email and OTP are required'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Find user with this reset token
+    console.log(`🔍 Verifying password reset OTP for user: ${email}`)
+
+    // Find user with matching email, OTP, and valid expiry
     const users = await req.payload.find({
       collection: 'users',
       where: {
         and: [
           {
-            passwordResetToken: {
-              equals: token
+            email: {
+              equals: email.toLowerCase()
             }
           },
           {
-            passwordResetExpiry: {
+            otp: {
+              equals: otp
+            }
+          },
+          {
+            otpExpiry: {
               greater_than: new Date()
             }
           }
@@ -1008,29 +1021,39 @@ export const verifyUserResetToken = async (req: PayloadRequest): Promise<Respons
 
     if (users.docs.length === 0) {
       return new Response(JSON.stringify({
-        error: 'Invalid or expired reset token'
+        error: 'Invalid or expired OTP'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
+    // OTP is valid - generate a temporary token for password reset
     const user = users.docs[0] as any
+    const tempToken = crypto.randomBytes(32).toString('hex')
+    
+    // Store temp token with 5 minute expiry
+    await req.payload.update({
+      collection: 'users',
+      id: user.id,
+      data: {
+        passwordResetToken: tempToken,
+        passwordResetExpiry: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      }
+    })
+
+    console.log(`✅ OTP verified for user: ${email}`)
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Reset token is valid',
-      user: {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName
-      }
+      message: 'OTP verified successfully',
+      resetToken: tempToken // Frontend will use this for the actual reset
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('Verify reset token error:', error)
+    console.error('❌ Verify user OTP error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
     }), {
@@ -1040,13 +1063,13 @@ export const verifyUserResetToken = async (req: PayloadRequest): Promise<Respons
   }
 }
 
-// Reset user password
+// Reset user password (remains the same)
 export const userResetPassword = async (req: PayloadRequest): Promise<Response> => {
   try {
     const body = await parseRequestBody(req)
     const { token, password, confirmPassword } = body
 
-    console.log('🔐 User password reset with token:', token)
+    console.log('🔐 User password reset with token')
 
     // Validate required fields
     if (!token || !password || !confirmPassword) {
@@ -1109,8 +1132,7 @@ export const userResetPassword = async (req: PayloadRequest): Promise<Response> 
 
     const user = users.docs[0] as any
 
-    // Hash new password (Payload will handle this automatically)
-    // Update password and clear reset token
+    // Update password and clear all temporary fields
     await req.payload.update({
       collection: 'users',
       id: user.id,
@@ -1118,11 +1140,13 @@ export const userResetPassword = async (req: PayloadRequest): Promise<Response> 
         password: password, // Payload will hash this automatically
         passwordResetToken: null,
         passwordResetExpiry: null,
+        otp: null, // Clear the OTP
+        otpExpiry: null,
         passwordChangedAt: new Date().toISOString()
       }
     })
 
-    console.log(`✅ Password reset successful for: ${user.email}`)
+    console.log(`✅ Password reset successful for user: ${user.email}`)
 
     return new Response(JSON.stringify({
       success: true,
