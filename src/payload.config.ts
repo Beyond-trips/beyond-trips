@@ -40,7 +40,7 @@ import {
   completeUserOnboarding,
   userForgotPassword,
   userResetPassword,
-  verifyUserResetToken
+  verifyUserPasswordResetOTP
 
 } from './endpoints/userVerification'
 
@@ -160,9 +160,9 @@ export default buildConfig({
       handler: userForgotPassword,
     },
     {
-      path: '/user/verify-reset-token',
+      path: '/user/verify-reset-otp',
       method: 'get',
-      handler: verifyUserResetToken,
+      handler: verifyUserPasswordResetOTP,
     },
     {
       path: '/user/reset-password',
