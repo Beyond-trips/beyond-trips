@@ -132,7 +132,7 @@ export async function POST(
       case 'profile':
         // User is already authenticated above
         return await updateUserProfile(payloadRequest as any)
-      case 'forgot-password':
+      case 'forgot-password-otp':
         return await userForgotPassword(payloadRequest as any)
       
       case 'verify-reset-otp': // NEW ENDPOINT

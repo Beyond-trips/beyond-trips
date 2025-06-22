@@ -155,7 +155,7 @@ export default buildConfig({
       handler: resendUserOTP,
     },
     {
-      path: '/user/forgot-password',
+      path: '/user/forgot-password-otp',
       method: 'post',
       handler: userForgotPassword,
     },
