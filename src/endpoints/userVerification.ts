@@ -292,13 +292,7 @@ export const resendUserOTP = async (req: PayloadRequest): Promise<Response> => {
     const user = users.docs[0] as any
     console.log('👤 Found user for resend:', { id: user.id, email: user.email, emailVerified: user.emailVerified })
 
-    if (user.emailVerified) {
-      console.log('✅ Email already verified, no resend needed')
-      return new Response(JSON.stringify({ error: 'Email already verified' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    
 
     // Generate new OTP
     const otp = crypto.randomInt(100000, 999999).toString()
