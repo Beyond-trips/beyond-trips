@@ -8,6 +8,7 @@ import {
   startPartnerRegistration,
   verifyEmail,
   resendVerificationCode,
+  resendPartnerResetOTP,
   createAdCampaign,
   getSubscriptionPlans,
   setupPaymentBudgeting,
@@ -98,6 +99,8 @@ export async function POST(
         return await verifyEmail(payloadRequest as any)
       case 'resend-code':
         return await resendVerificationCode(payloadRequest as any)
+        case 'resendPartnerResetOTP':
+          return await resendPartnerResetOTP(payloadRequest as any)
       case 'create-campaign':
         return await createAdCampaign(payloadRequest as any)
       case 'setup-payment':

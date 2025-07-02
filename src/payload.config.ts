@@ -21,6 +21,7 @@ import {
   startPartnerRegistration,
   verifyEmail,
   resendVerificationCode,
+  resendPartnerResetOTP,
   createAdCampaign,
   getSubscriptionPlans,
   setupPaymentBudgeting,
@@ -109,6 +110,11 @@ export default buildConfig({
     },
     {
       path: '/partner/resend-code',
+      method: 'post',
+      handler: resendPartnerResetOTP,
+    },
+    {
+      path: '/partner/resendPartnerResetOTP',
       method: 'post',
       handler: resendVerificationCode,
     },

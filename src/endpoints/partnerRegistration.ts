@@ -788,6 +788,78 @@ export const verifyEmail = async (req: PayloadRequest): Promise<Response> => {
 }
 
 
+// resend verification code for reset password 
+export const resendPartnerResetOTP = async (req: PayloadRequest): Promise<Response> => {
+  try {
+    const body = await parseRequestBody(req)
+    const { email } = body
+
+    if (!email) {
+      return new Response(JSON.stringify({ error: 'Email is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Find partner by companyEmail
+    const partners = await req.payload.find({
+      collection: 'business-details',
+      where: {
+        companyEmail: {
+          equals: email.toLowerCase()
+        }
+      },
+      limit: 1
+    })
+
+    if (partners.docs.length === 0) {
+      return new Response(JSON.stringify({ error: 'Partner not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const partner = partners.docs[0]
+
+    // Generate reset OTP
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+    const verificationCodeExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+    // Update partner with reset code
+    await req.payload.update({
+      collection: 'business-details',
+      id: partner.id,
+      data: {
+        verificationCode,
+        verificationCodeExpiry,
+        passwordResetToken: null,
+        passwordResetExpiry: null
+      }
+    })
+
+    // Send email
+    const result = await sendOTPEmail(partner.companyEmail, verificationCode)
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: result.success 
+        ? 'Reset OTP sent to your email' 
+        : 'OTP generated but email sending failed',
+      emailSent: result.success
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('Partner reset OTP resend error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
 
 
 // 3. Resend Verification Code
