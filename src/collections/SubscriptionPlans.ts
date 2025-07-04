@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 
 export const SubscriptionPlans: CollectionConfig = {
   slug: 'subscription-plans',
+  defaultSort: ['price'],
   admin: {
     useAsTitle: 'planName',
   },
