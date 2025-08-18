@@ -28,7 +28,7 @@ export async function GET(
   
   // Get user from session/token
   const authHeader = req.headers.get('authorization')
-  let user = null
+  const user = null
   
   if (authHeader?.startsWith('Bearer ')) {
     // Handle JWT token authentication if you're using it

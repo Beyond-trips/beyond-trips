@@ -12,12 +12,25 @@ const nextConfig = {
   
   // Other configurations
   reactStrictMode: true,
-  swcMinify: true,
   
   // Image optimization for production
   images: {
     domains: ['localhost'],
     // Add your production domains here
+  },
+  
+  // Static file serving for media uploads
+  async rewrites() {
+    return [
+      {
+        source: '/api/media/:path*',
+        destination: '/api/media/:path*',
+      },
+      {
+        source: '/media/:path*',
+        destination: '/api/media/:path*',
+      },
+    ]
   },
   
   // Force CORS headers on all API routes

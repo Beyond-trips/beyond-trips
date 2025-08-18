@@ -1,7 +1,6 @@
 import { buildConfig } from 'payload'
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import { uploadthingStorage } from '@payloadcms/storage-uploadthing'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -85,17 +84,7 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.MONGODB_URI || '',
   }),
-  plugins: [
-    uploadthingStorage({
-      collections: {
-        media: true,
-      },
-      options: {
-        token: process.env.UPLOADTHING_SECRET,
-        acl: 'public-read',
-      },
-    }),
-  ],
+  
   endpoints: [
     // Partner Registration Endpoints
     {

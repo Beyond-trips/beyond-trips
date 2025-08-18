@@ -390,8 +390,8 @@ export const getUserOnboardingStatus = async (req: PayloadRequest): Promise<Resp
         collection: 'user-onboarding',
         data: {
           userId: user.id,
-          currentStep: 'basic_details' as 'basic_details',
-          onboardingStatus: 'in_progress' as 'in_progress',
+          currentStep: 'basic_details' as const,
+          onboardingStatus: 'in_progress' as const,
           stepsCompleted: [],
           startedAt: new Date().toISOString()
         }
@@ -504,7 +504,7 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
           id: existingDocs.docs[0].id,
           data: {
             documentFile: mediaId,
-            verificationStatus: 'pending' as 'pending',
+            verificationStatus: 'pending' as const,
             uploadedAt: new Date().toISOString()
           }
         })
@@ -517,7 +517,7 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
             userId: user.id,
             documentType: documentType as 'drivers_license' | 'national_id' | 'vehicle_registration',
             documentFile: mediaId,
-            verificationStatus: 'pending' as 'pending',
+            verificationStatus: 'pending' as const,
             uploadedAt: new Date().toISOString()
           }
         })
@@ -526,7 +526,7 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
     }
 
     // Update onboarding status
-    await updateOnboardingStep(req, user.id, 'document_upload')
+    await updateOnboardingStep(req, String(user.id), 'document_upload')
 
     return new Response(JSON.stringify({
       success: true,
@@ -624,7 +624,7 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
           bankName: bankName as any, // Type assertion for your bank options
           accountName: accountName.trim(),
           accountNumber: cleanAccountNumber,
-          verificationStatus: 'pending' as 'pending'
+          verificationStatus: 'pending' as const
         }
       })
       
@@ -640,7 +640,7 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
           bankName: bankName as any, // Type assertion for your bank options
           accountName: accountName.trim(),
           accountNumber: cleanAccountNumber,
-          verificationStatus: 'pending' as 'pending'
+          verificationStatus: 'pending' as const
         }
       })
       
@@ -648,7 +648,7 @@ export const saveUserBankDetails = async (req: PayloadRequest): Promise<Response
     }
 
     // Update onboarding status
-    await updateOnboardingStep(req, user.id, 'bank_payment')
+    await updateOnboardingStep(req, String(user.id), 'bank_payment')
 
     return new Response(JSON.stringify({
       success: true,
@@ -765,7 +765,7 @@ export const completeUserTraining = async (req: PayloadRequest): Promise<Respons
     }
 
     // Update onboarding status
-    await updateOnboardingStep(req, user.id, 'training')
+    await updateOnboardingStep(req, String(user.id), 'training')
 
     return new Response(JSON.stringify({
       success: true,
@@ -852,16 +852,16 @@ export const completeUserOnboarding = async (req: PayloadRequest): Promise<Respo
     }
 
     // Update onboarding to completed
-    const onboardingRecord = await updateOnboardingStep(req, user.id, 'completed')
+    const onboardingRecord = await updateOnboardingStep(req, String(user.id), 'completed')
 
     // Update final status
     await req.payload.update({
       collection: 'user-onboarding',
       id: onboardingRecord.id,
-      data: {
-        onboardingStatus: 'pending_review' as 'pending_review',
-        completedAt: new Date().toISOString()
-      }
+              data: {
+          onboardingStatus: 'pending_review' as const,
+          completedAt: new Date().toISOString()
+        }
     })
 
     return new Response(JSON.stringify({
@@ -1250,13 +1250,13 @@ async function updateOnboardingStep(req: PayloadRequest, userId: string, step: '
     // Create new onboarding record
     onboardingRecord = await req.payload.create({
       collection: 'user-onboarding',
-      data: {
-        userId,
-        currentStep: step,
-        onboardingStatus: 'in_progress' as 'in_progress',
-        stepsCompleted: [{ step, completedAt: new Date().toISOString() }],
-        startedAt: new Date().toISOString()
-      }
+              data: {
+          userId,
+          currentStep: step,
+          onboardingStatus: 'in_progress' as const,
+          stepsCompleted: [{ step, completedAt: new Date().toISOString() }],
+          startedAt: new Date().toISOString()
+        }
     })
   } else {
     // Update existing record
