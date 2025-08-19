@@ -17,7 +17,7 @@ export const Media: CollectionConfig = {
   },
   upload: {
     staticDir: path.resolve(dirname, '../../media'), // Points to project root/media
-    mimeTypes: ['image/*', 'application/pdf'],
+    mimeTypes: ['image/*', 'application/pdf', 'text/*'],
     adminThumbnail: 'thumbnail',
     imageSizes: [
       {
@@ -45,4 +45,27 @@ export const Media: CollectionConfig = {
       type: 'text',
     },
   ],
+  hooks: {
+    beforeChange: [
+      ({ data, req }) => {
+        console.log('📁 Media upload beforeChange:', { 
+          filename: data?.filename, 
+          mimeType: data?.mimeType,
+          user: req.user?.email 
+        })
+        return data
+      }
+    ],
+    afterChange: [
+      ({ doc, req }) => {
+        console.log('✅ Media upload afterChange:', { 
+          id: doc.id, 
+          filename: doc.filename,
+          url: doc.url,
+          user: req.user?.email 
+        })
+        return doc
+      }
+    ],
+  },
 }

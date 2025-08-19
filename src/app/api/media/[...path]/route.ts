@@ -13,7 +13,15 @@ export async function GET(
     
     // Construct the full file path - use project root
     const projectRoot = process.cwd()
-    const fullPath = path.join(projectRoot, 'media', filename)
+    
+    // Handle Payload 3.x file/ prefix - try both with and without it
+    let fullPath = path.join(projectRoot, 'media', filename)
+    
+    // If file not found and path starts with 'file/', try without it
+    if (!fs.existsSync(fullPath) && filename.startsWith('file/')) {
+      const filenameWithoutPrefix = filename.replace('file/', '')
+      fullPath = path.join(projectRoot, 'media', filenameWithoutPrefix)
+    }
     
     console.log('Requested file:', filename)
     console.log('Full path:', fullPath)
