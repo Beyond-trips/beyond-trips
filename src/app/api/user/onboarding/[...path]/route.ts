@@ -72,7 +72,7 @@ export async function POST(
   
   // For authenticated routes, use Payload's auth
   let user = null
-  if (pathname === 'bank-details' || pathname === 'profile'|| pathname === 'documents') {
+  if (pathname === 'bank-details' || pathname === 'profile'|| pathname === 'documents' || pathname === 'complete') {
     try {
       // Use Payload's built-in authentication
       // Pass the NextRequest headers directly - they're already a Headers object
@@ -87,7 +87,7 @@ export async function POST(
         console.log('❌ No authenticated user found')
         return NextResponse.json({
           error: 'Authentication required',
-          message: 'You must be logged in to save bank details'
+          message: 'You must be logged in to access this endpoint'
         }, { status: 401 })
       }
     } catch (error) {
