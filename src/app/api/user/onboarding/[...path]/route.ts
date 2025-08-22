@@ -72,7 +72,7 @@ export async function POST(
   
   // For authenticated routes, use Payload's auth
   let user = null
-  if (pathname === 'bank-details' || pathname === 'profile'|| pathname === 'documents' || pathname === 'complete') {
+  if (pathname === 'bank-details' || pathname === 'profile'|| pathname === 'documents' || pathname === 'training' || pathname === 'complete') {
     try {
       // Use Payload's built-in authentication
       // Pass the NextRequest headers directly - they're already a Headers object
