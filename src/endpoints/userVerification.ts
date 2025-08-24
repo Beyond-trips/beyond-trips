@@ -854,19 +854,12 @@ export const completeUserOnboarding = async (req: PayloadRequest): Promise<Respo
     // Update onboarding to completed
     const onboardingRecord = await updateOnboardingStep(req, String(user.id), 'completed')
 
-    // Update final status
-    await req.payload.update({
-      collection: 'user-onboarding',
-      id: onboardingRecord.id,
-              data: {
-          onboardingStatus: 'pending_review' as const,
-          completedAt: new Date().toISOString()
-        }
-    })
+    // The updateOnboardingStep function now handles setting the status to 'pending_review'
+    // No need to update it again
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Onboarding completed successfully! Your account is now under review.',
+      message: 'Onboarding completed successfully! You can now access your dashboard.',
       onboarding: onboardingRecord
     }), {
       headers: { 'Content-Type': 'application/json' }
@@ -1248,15 +1241,17 @@ async function updateOnboardingStep(req: PayloadRequest, userId: string, step: '
 
   if (!onboardingRecord) {
     // Create new onboarding record
+    const onboardingStatus = step === 'completed' ? 'completed' : 'in_progress'
     onboardingRecord = await req.payload.create({
       collection: 'user-onboarding',
-              data: {
-          userId,
-          currentStep: step,
-          onboardingStatus: 'in_progress' as const,
-          stepsCompleted: [{ step, completedAt: new Date().toISOString() }],
-          startedAt: new Date().toISOString()
-        }
+      data: {
+        userId,
+        currentStep: step,
+        onboardingStatus: onboardingStatus as 'completed' | 'in_progress',
+        stepsCompleted: [{ step, completedAt: new Date().toISOString() }],
+        startedAt: new Date().toISOString(),
+        ...(step === 'completed' && { completedAt: new Date().toISOString() })
+      }
     })
   } else {
     // Update existing record
@@ -1267,12 +1262,22 @@ async function updateOnboardingStep(req: PayloadRequest, userId: string, step: '
       ? existingSteps 
       : [...existingSteps, { step, completedAt: new Date().toISOString() }]
 
+    // Determine the correct status
+    let onboardingStatus = onboardingRecord.onboardingStatus
+    if (step === 'completed') {
+      onboardingStatus = 'completed'
+    } else if (step !== 'basic_details') {
+      onboardingStatus = 'in_progress'
+    }
+
     onboardingRecord = await req.payload.update({
       collection: 'user-onboarding',
       id: onboardingRecord.id,
       data: {
         currentStep: step,
-        stepsCompleted: updatedSteps
+        onboardingStatus: onboardingStatus as 'completed' | 'in_progress',
+        stepsCompleted: updatedSteps,
+        ...(step === 'completed' && { completedAt: new Date().toISOString() })
       }
     })
   }
