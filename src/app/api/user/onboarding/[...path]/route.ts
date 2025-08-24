@@ -26,13 +26,32 @@ export async function GET(
   const pathname = (path || []).join('/')
   const payload = await getPayload({ config })
   
-  // Get user from session/token
-  const authHeader = req.headers.get('authorization')
-  const user = null
-  
-  if (authHeader?.startsWith('Bearer ')) {
-    // Handle JWT token authentication if you're using it
-    // For now, we'll rely on Payload's built-in auth
+  // For authenticated routes, use Payload's auth
+  let user = null
+  if (pathname === 'status') {
+    try {
+      // Use Payload's built-in authentication
+      const authResult = await payload.auth({ 
+        headers: req.headers
+      })
+      
+      if (authResult.user) {
+        user = authResult.user
+        console.log('✅ GET route authenticated via Payload:', user.email)
+      } else {
+        console.log('❌ No authenticated user found in GET route')
+        return NextResponse.json({
+          error: 'Authentication required',
+          message: 'You must be logged in to access this endpoint'
+        }, { status: 401 })
+      }
+    } catch (error) {
+      console.error('❌ GET route Payload auth error:', error)
+      return NextResponse.json({
+        error: 'Authentication failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 401 })
+    }
   }
   
   const payloadRequest = {
@@ -40,7 +59,7 @@ export async function GET(
     headers: req.headers,
     url: req.url,
     method: req.method,
-    user, // This will be populated by Payload's auth middleware
+    user, // Now properly populated using Payload's auth
   }
 
   try {
