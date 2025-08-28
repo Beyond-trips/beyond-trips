@@ -23,9 +23,9 @@ export const SubscriptionPlans: CollectionConfig = {
       name: 'planType',
       type: 'select',
       options: [
-        { label: 'Starter', value: 'Starter' },
-        { label: 'Standard', value: 'Standard' },
-        { label: 'Pro', value: 'Pro' },
+        { label: 'Essentials Plan', value: 'Essentials Plan' },
+        { label: 'Growth Plan', value: 'Growth Plan' },
+        { label: 'Impact Plan', value: 'Impact Plan' },
       ],
       required: true,
     },
