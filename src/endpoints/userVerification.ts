@@ -818,15 +818,16 @@ export const completeUserOnboarding = async (req: PayloadRequest): Promise<Respo
       })
     ])
 
-    // Check if all required documents are uploaded
+    // Check if at least one required document is uploaded (any of the three types)
     const requiredDocTypes = ['drivers_license', 'national_id', 'vehicle_registration']
     const uploadedDocTypes = documents.docs.map((doc: any) => doc.documentType)
-    const missingDocs = requiredDocTypes.filter(type => !uploadedDocTypes.includes(type))
+    const hasAtLeastOneRequiredDoc = requiredDocTypes.some(type => uploadedDocTypes.includes(type))
 
-    if (missingDocs.length > 0) {
+    if (!hasAtLeastOneRequiredDoc) {
       return new Response(JSON.stringify({
-        error: 'Missing required documents',
-        missingDocuments: missingDocs
+        error: 'At least one document is required (Driver\'s License, National ID, or Vehicle Registration)',
+        requiredDocuments: requiredDocTypes,
+        uploadedDocuments: uploadedDocTypes
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
