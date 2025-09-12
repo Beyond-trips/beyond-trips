@@ -14,6 +14,17 @@ import { UserBankDetails } from './collections/UserBankDetails'
 import { UserTraining } from './collections/UserTraining'
 import { UserOnboarding } from './collections/UserOnboarding'
 import { Media } from './collections/Media'
+import { DriverRatings } from './collections/DriverRatings'
+import { DriverNotifications } from './collections/DriverNotifications'
+import { DriverMagazines } from './collections/DriverMagazines'
+import { DriverMagazineReads } from './collections/DriverMagazineReads'
+import { DriverEarnings } from './collections/DriverEarnings'
+import { DriverWithdrawals } from './collections/DriverWithdrawals'
+import { CampaignPerformance } from './collections/CampaignPerformance'
+import { CampaignMedia } from './collections/CampaignMedia'
+import { Invoices } from './collections/Invoices'
+import { AnalyticsData } from './collections/AnalyticsData'
+import { ProfilePictures } from './collections/ProfilePictures'
 
 
 import { 
@@ -74,6 +85,17 @@ export default buildConfig({
     UserBankDetails,
     UserTraining,
     UserOnboarding,
+    DriverEarnings,
+    DriverWithdrawals,
+    DriverRatings,
+    DriverNotifications,
+    DriverMagazines,
+    DriverMagazineReads,
+    CampaignPerformance,
+    CampaignMedia,
+    Invoices,
+    AnalyticsData,
+    ProfilePictures,
     
   ],
   editor: lexicalEditor(),

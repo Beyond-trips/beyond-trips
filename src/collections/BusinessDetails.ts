@@ -84,8 +84,30 @@ export const BusinessDetails: CollectionConfig = {
     {
       name: 'verificationCodeExpiry',
       type: 'date',
-    defaultValue: () => new Date(),
+      defaultValue: () => new Date(),
+    },
+    {
+      name: 'profilePicture',
+      type: 'text',
+      admin: {
+        description: 'URL to the business profile picture',
       },
+    },
+    {
+      name: 'profilePictureUpdatedAt',
+      type: 'date',
+      admin: {
+        description: 'When the profile picture was last updated',
+      },
+    },
+    {
+      name: 'profilePictureId',
+      type: 'relationship',
+      relationTo: 'profile-pictures',
+      admin: {
+        description: 'Reference to the ProfilePictures collection',
+      },
+    },
 
   ],
 }

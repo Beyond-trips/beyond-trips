@@ -23,7 +23,7 @@ export const UserOnboarding: CollectionConfig = {
         { label: 'Training & Compliance', value: 'training' },
         { label: 'Confirmation & Dashboard Access', value: 'completed' },
       ],
-      defaultValue: 'basic_details',
+      defaultValue: { value: 'basic_details' },
     },
     {
       name: 'stepsCompleted',
@@ -57,7 +57,7 @@ export const UserOnboarding: CollectionConfig = {
         { label: 'Rejected', value: 'rejected' },
         { label: 'Completed', value: 'completed' },
       ],
-      defaultValue: 'in_progress',
+      defaultValue: { value: 'in_progress' },
     },
     {
       name: 'startedAt',
