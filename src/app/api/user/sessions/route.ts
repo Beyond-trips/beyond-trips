@@ -88,7 +88,7 @@ export const POST = async (req: NextRequest) => {
     
     // Try to get action from query string first, then from body
     let action = searchParams.get('action')
-    let body = {}
+    let body: any = {}
     
     try {
       const clonedReq = req.clone()

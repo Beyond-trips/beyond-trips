@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import jwt from 'jsonwebtoken'
 import {
   createPaymentIntent,
   handleStripeWebhook,
@@ -43,8 +44,8 @@ export async function POST(req: NextRequest) {
     // Get user from token if provided
     if (token) {
       try {
-        const user = await payload.verifyJWT({ token })
-        payloadReq.user = user
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        payloadReq.user = decoded
       } catch (error) {
         console.log('Token verification skipped:', String(error))
       }
@@ -110,8 +111,8 @@ export async function GET(req: NextRequest) {
 
     if (token) {
       try {
-        const user = await payload.verifyJWT({ token })
-        payloadReq.user = user
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        payloadReq.user = decoded
       } catch (error) {
         console.log('Token verification skipped')
       }

@@ -9,13 +9,15 @@ export const AdvertiserQRCodes: CollectionConfig = {
   access: {
     create: ({ req: { user } }) => {
       // Only admins and advertisers can create QR codes
-      if (user?.role === 'admin') return true
-      if (user?.role === 'partner') return true // Partners/Advertisers
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if ((user as any).role === 'partner') return true // Partners/Advertisers
       return false
     },
     read: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true // Admins see all
-      if (user?.role === 'partner') {
+      if (!user) return true // Public can read to validate QR codes
+      if (user.role === 'admin') return true // Admins see all
+      if ((user as any).role === 'partner') {
         // Partners only see their own campaign QR codes
         return {
           'campaign.advertiser': {
@@ -26,12 +28,14 @@ export const AdvertiserQRCodes: CollectionConfig = {
       return true // Public can read to validate QR codes
     },
     update: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true
-      if (user?.role === 'partner') return true
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if ((user as any).role === 'partner') return true
       return false
     },
     delete: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true
+      if (!user) return false
+      if (user.role === 'admin') return true
       return false
     },
   },

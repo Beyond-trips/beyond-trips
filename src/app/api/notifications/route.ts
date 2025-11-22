@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import jwt from 'jsonwebtoken'
 import {
   sendNotification,
   getNotificationHistory,
@@ -34,8 +35,8 @@ export async function POST(req: NextRequest) {
 
     if (token) {
       try {
-        const user = await payload.verifyJWT({ token })
-        payloadReq.user = user
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        payloadReq.user = decoded
       } catch (error) {
         console.log('Token verification skipped')
       }
@@ -86,8 +87,8 @@ export async function GET(req: NextRequest) {
 
     if (token) {
       try {
-        const user = await payload.verifyJWT({ token })
-        payloadReq.user = user
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        payloadReq.user = decoded
       } catch (error) {
         console.log('Token verification skipped')
       }

@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
         businessId,
         campaignType,
         campaignName: campaignName || `Campaign for ${(businessDetails as any).companyName}`,
-        campaignDescription,
+        campaignDescription: campaignDescription || '',
         status: 'draft',
-      },
+        // Required fields will be set later when campaign is activated
+      } as any, // Use type assertion to allow draft campaigns without budget/dates
     })
 
     // Update business registration status
