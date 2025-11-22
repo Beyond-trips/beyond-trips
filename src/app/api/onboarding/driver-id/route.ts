@@ -14,17 +14,10 @@ export async function GET(req: NextRequest) {
     
     console.log('📊 GET /api/onboarding/driver-id - Getting total drivers count')
     
-    // Count all users with role 'user' (drivers)
-    const drivers = await payload.find({
-      collection: 'users',
-      where: {
-        role: { equals: 'user' }
-      },
-      limit: 0, // We only need the count, not the documents
-      depth: 0
+    // Count all users in the collection (including those added bypassing Payload)
+    const totalDrivers = await payload.count({
+      collection: 'users'
     })
-    
-    const totalDrivers = drivers.totalDocs || 0
     
     console.log(`✅ Total onboarded drivers: ${totalDrivers}`)
     
@@ -34,7 +27,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*', // Allow CORS for public endpoint
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
       }
     })
   } catch (error) {
@@ -44,7 +39,12 @@ export async function GET(req: NextRequest) {
       Total_drivers_onboarded: 0
     }, {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
     })
   }
 }
