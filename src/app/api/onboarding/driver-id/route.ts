@@ -14,17 +14,10 @@ export async function GET(req: NextRequest) {
     
     console.log('📊 GET /api/onboarding/driver-id - Getting total drivers count')
     
-    // Count all users with role 'user' (drivers)
-    const drivers = await payload.find({
-      collection: 'users',
-      where: {
-        role: { equals: 'user' }
-      },
-      limit: 0, // We only need the count, not the documents
-      depth: 0
+    // Count all users in the collection (including those added bypassing Payload)
+    const totalDrivers = await payload.count({
+      collection: 'users'
     })
-    
-    const totalDrivers = drivers.totalDocs || 0
     
     console.log(`✅ Total onboarded drivers: ${totalDrivers}`)
     
