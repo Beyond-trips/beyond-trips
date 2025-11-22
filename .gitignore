@@ -42,3 +42,21 @@ next-env.d.ts
 
 /media
 .env.backup
+
+# test token cache
+__tests__/utils/.test-tokens.json
+
+# Ignore test files
+__tests__/
+
+# Ignore all .md files (documentation)
+*.md
+!README.md
+!CI_CD_SETUP_GUIDE.md
+
+# Ignore temporary files
+temp_*.ts
+*_temp.ts
+
+# Ignore all .md files in implementation-doc folder (if it exists)
+implementation-doc/**/*.md
