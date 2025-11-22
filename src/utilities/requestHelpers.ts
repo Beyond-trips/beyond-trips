@@ -71,3 +71,42 @@ export const checkAdminAccess = (user: any): Response | null => {
   return null
 }
 
+/**
+ * Safely get URL object from request
+ * Returns null if req.url is undefined, otherwise returns URL object
+ */
+export const getRequestUrl = (req: PayloadRequest): URL | null => {
+  if (!req.url) {
+    return null
+  }
+  return new URL(req.url)
+}
+
+/**
+ * Safely get URL object from request or return error response
+ * Returns error Response if req.url is undefined, otherwise returns URL object
+ */
+export const getRequestUrlOrError = (req: PayloadRequest): URL | Response => {
+  if (!req.url) {
+    return new Response(JSON.stringify({ error: 'Invalid request' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+  return new URL(req.url)
+}
+
+/**
+ * Ensure user is not null after checkAdminAccess
+ * Returns error response if user is null, otherwise returns null (success)
+ */
+export const ensureUserNotNull = (user: any): Response | null => {
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+  return null
+}
+

@@ -2,6 +2,7 @@
 // Admin endpoints for KYC document verification workflow
 
 import type { PayloadRequest } from 'payload'
+import { getRequestUrlOrError, ensureUserNotNull } from '../utilities/requestHelpers'
 
 // Helper function to check admin access
 const checkAdminAccess = (user: any): boolean => {
@@ -86,7 +87,9 @@ export const getPendingDocuments = async (req: PayloadRequest): Promise<Response
     }
 
     // Get URL parameters
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const status = url.searchParams.get('status') || 'pending'
     const documentType = url.searchParams.get('documentType')
     const page = parseInt(url.searchParams.get('page') || '1')
@@ -219,7 +222,9 @@ export const getDocumentDetails = async (req: PayloadRequest): Promise<Response>
     }
 
     // Get document ID from URL
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const documentIdIndex = pathParts.indexOf('documents') + 1
     const documentId = pathParts[documentIdIndex]
@@ -332,7 +337,9 @@ export const verifyDocument = async (req: PayloadRequest): Promise<Response> => 
     }
 
     // Get document ID from URL
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const documentIdIndex = pathParts.findIndex(p => p === 'documents') + 1
     const documentId = pathParts[documentIdIndex]
@@ -372,6 +379,10 @@ export const verifyDocument = async (req: PayloadRequest): Promise<Response> => 
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    // Ensure user is not null
+    const userCheck = ensureUserNotNull(user)
+    if (userCheck) return userCheck
 
     // Update document status
     const updateData: any = {
@@ -456,7 +467,9 @@ export const rejectDocument = async (req: PayloadRequest): Promise<Response> => 
     }
 
     // Get document ID from URL
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const documentIdIndex = pathParts.findIndex(p => p === 'documents') + 1
     const documentId = pathParts[documentIdIndex]
@@ -572,7 +585,9 @@ export const markDocumentUnderReview = async (req: PayloadRequest): Promise<Resp
     }
 
     // Get document ID from URL
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const documentIdIndex = pathParts.findIndex(p => p === 'documents') + 1
     const documentId = pathParts[documentIdIndex]

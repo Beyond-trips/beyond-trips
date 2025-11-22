@@ -962,7 +962,7 @@ async function generateBarcodeImage(barcode: string): Promise<{ url: string, bas
       type: 'image/png',
       width: 500,
       margin: 2,
-    })
+    } as any)
     
     // Upload to S3
     const uploadResult = await qrCodeStorage.uploadFile(

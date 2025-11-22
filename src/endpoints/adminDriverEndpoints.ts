@@ -2,6 +2,7 @@
 // Admin endpoints for driver registration approval workflow
 
 import type { PayloadRequest } from 'payload'
+import { getRequestUrlOrError } from '../utilities/requestHelpers'
 
 // Helper function to check admin access
 const checkAdminAccess = (user: any): boolean => {
@@ -183,7 +184,9 @@ export const approveDriverRegistration = async (req: PayloadRequest): Promise<Re
     }
 
     // Get userId from URL path
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const userIdIndex = pathParts.indexOf('drivers') + 1
     const userId = pathParts[userIdIndex]
@@ -280,7 +283,9 @@ export const rejectDriverRegistration = async (req: PayloadRequest): Promise<Res
     }
 
     // Get userId from URL path
-    const url = new URL(req.url)
+    const urlResult = getRequestUrlOrError(req)
+    if (urlResult instanceof Response) return urlResult
+    const url = urlResult
     const pathParts = url.pathname.split('/')
     const userIdIndex = pathParts.indexOf('drivers') + 1
     const userId = pathParts[userIdIndex]

@@ -1,6 +1,6 @@
 // New file: src/endpoints/adminInvoiceEndpoints.ts
 import type { PayloadRequest } from 'payload'
-import { checkAdminAccess, parseRequestBody } from '../utilities/requestHelpers'
+import { checkAdminAccess, parseRequestBody, ensureUserNotNull } from '../utilities/requestHelpers'
 import { sendInvoiceNotification } from '../services/notifications/advertiserNotifications'
 
 // Get all invoices
@@ -339,6 +339,10 @@ export const exportInvoicesToPDF = async (req: PayloadRequest): Promise<Response
     const pendingAmount = invoices.docs
       .filter((inv: any) => inv.status === 'pending_payment')
       .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0)
+
+    // Ensure user is not null
+    const userCheck = ensureUserNotNull(user)
+    if (userCheck) return userCheck
 
     // Return structured data for PDF generation
     return new Response(JSON.stringify({
