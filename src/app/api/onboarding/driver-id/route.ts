@@ -15,9 +15,11 @@ export async function GET(req: NextRequest) {
     console.log('📊 GET /api/onboarding/driver-id - Getting total drivers count')
     
     // Count all users in the collection (including those added bypassing Payload)
-    const totalDrivers = await payload.count({
+    const countResult = await payload.count({
       collection: 'users'
     })
+    
+    const totalDrivers = countResult.totalDocs || 0
     
     console.log(`✅ Total onboarded drivers: ${totalDrivers}`)
     
