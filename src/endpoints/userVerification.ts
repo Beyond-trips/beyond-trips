@@ -8,11 +8,14 @@ import { sendOTPEmail } from '../lib/email'
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
   try {
-    if (req.json && typeof req.json === 'function') {
-      return await req.json()
-    }
+    // First check if body is already parsed (from route handler)
+    // Check if body exists and is an object (not a ReadableStream)
     if (req.body && typeof req.body === 'object' && !(req.body instanceof ReadableStream)) {
       return req.body
+    }
+    // Then check if json function is available
+    if (req.json && typeof req.json === 'function') {
+      return await req.json()
     }
     if (req.body instanceof ReadableStream) {
       const reader = req.body.getReader()
@@ -486,6 +489,24 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
         continue
       }
 
+      // Validate mediaId exists in media collection
+      try {
+        await req.payload.findByID({
+          collection: 'media',
+          id: mediaId
+        })
+      } catch (error) {
+        console.warn(`⚠️ Invalid mediaId: ${mediaId}, skipping document upload`)
+        // Return 400 for invalid mediaId instead of 500
+        return new Response(JSON.stringify({
+          error: 'Invalid media ID',
+          details: `Media with ID "${mediaId}" not found`
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+
       // Check if document type already exists for this user
       const existingDocs = await req.payload.find({
         collection: 'user-documents',
@@ -499,14 +520,28 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
 
       if (existingDocs.docs.length > 0) {
         // Update existing document
+        const existingDoc = existingDocs.docs[0] as any
+        
+        // ✅ CHECKPOINT: KYC Resubmission - Handle status transitions properly
+        const updateData: any = {
+          documentFile: mediaId,
+          verificationStatus: 'pending' as const,
+          uploadedAt: new Date().toISOString()
+        }
+
+        // If document was rejected, mark as resubmitted (hook will handle this)
+        // If it's a new upload or update, reset to pending
+        if (existingDoc.documentStatus === 'rejected' || existingDoc.documentStatus === 'expired') {
+          updateData.documentStatus = 'pending' as any // Hook will change to 'resubmitted', Type will be updated after Payload types regeneration
+          console.log(`📄 Driver resubmitting ${documentType} after ${existingDoc.documentStatus}`)
+        } else {
+          updateData.documentStatus = 'pending' as any // Type will be updated after Payload types regeneration
+        }
+
         const updatedDoc = await req.payload.update({
           collection: 'user-documents',
-          id: existingDocs.docs[0].id,
-          data: {
-            documentFile: mediaId,
-            verificationStatus: 'pending' as const,
-            uploadedAt: new Date().toISOString()
-          }
+          id: existingDoc.id,
+          data: updateData as any // Type assertion for new field
         })
         uploadedDocs.push(updatedDoc)
       } else {
@@ -517,9 +552,10 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
             userId: user.id,
             documentType: documentType as 'drivers_license' | 'national_id' | 'vehicle_registration',
             documentFile: mediaId,
+            documentStatus: 'pending' as any, // Type will be updated after Payload types regeneration
             verificationStatus: 'pending' as const,
             uploadedAt: new Date().toISOString()
-          }
+          } as any // Type assertion for new field
         })
         uploadedDocs.push(newDoc)
       }
@@ -538,8 +574,10 @@ export const uploadUserDocuments = async (req: PayloadRequest): Promise<Response
 
   } catch (error) {
     console.error('❌ Upload documents error:', error)
+    console.error('❌ Error details:', error instanceof Error ? error.stack : String(error))
     return new Response(JSON.stringify({
-      error: 'Failed to upload documents'
+      error: 'Failed to upload documents',
+      details: error instanceof Error ? error.message : String(error)
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -1266,7 +1304,8 @@ async function updateOnboardingStep(req: PayloadRequest, userId: string, step: '
     // Determine the correct status
     let onboardingStatus = onboardingRecord.onboardingStatus
     if (step === 'completed') {
-      onboardingStatus = 'completed'
+      // Changed: Set to pending_review instead of completed to trigger admin approval workflow
+      onboardingStatus = 'pending_review'
     } else if (step !== 'basic_details') {
       onboardingStatus = 'in_progress'
     }
@@ -1276,7 +1315,7 @@ async function updateOnboardingStep(req: PayloadRequest, userId: string, step: '
       id: onboardingRecord.id,
       data: {
         currentStep: step,
-        onboardingStatus: onboardingStatus as 'completed' | 'in_progress',
+        onboardingStatus: onboardingStatus as 'completed' | 'in_progress' | 'pending_review' | 'approved' | 'rejected',
         stepsCompleted: updatedSteps,
         ...(step === 'completed' && { completedAt: new Date().toISOString() })
       }

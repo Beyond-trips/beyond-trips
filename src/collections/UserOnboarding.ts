@@ -79,5 +79,12 @@ export const UserOnboarding: CollectionConfig = {
         description: 'Internal notes for admin review',
       },
     },
+    {
+      name: 'rejectionReason',
+      type: 'textarea',
+      admin: {
+        description: 'Reason for registration rejection (shown to driver)',
+      },
+    },
   ],
 }

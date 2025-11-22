@@ -126,6 +126,7 @@ export const testEmailConnection = async () => {
     }
   }
 }
+
 export const sendPasswordResetEmail = async (
   email: string,
   resetUrl: string,
@@ -257,6 +258,46 @@ Sent via Postmark`,
     }
   } catch (error) {
     console.error('Failed to send password reset email via Postmark:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      provider: 'Postmark SMTP'
+    }
+  }
+}
+
+/**
+ * Generic notification email sender
+ * Used for driver notifications, admin alerts, advertiser updates, etc.
+ */
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  htmlBody: string,
+  textBody?: string
+) => {
+  try {
+    const transporter = createTransporter()
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || 'hello@beyondtrip.co.uk',
+      to,
+      subject,
+      html: htmlBody,
+      text: textBody || htmlBody.replace(/<[^>]*>/g, ''), // Strip HTML if no text provided
+    }
+
+    console.log(`Sending notification email to ${to}: ${subject}`)
+    const result = await transporter.sendMail(mailOptions)
+    console.log('Notification email sent successfully via Postmark:', result.messageId)
+    
+    return { 
+      success: true, 
+      messageId: result.messageId,
+      provider: 'Postmark SMTP'
+    }
+  } catch (error) {
+    console.error('Failed to send notification email via Postmark:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error',

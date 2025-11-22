@@ -1,0 +1,261 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Beyond Trips API",
+    "description": "Complete API documentation for Beyond Trips platform - Driver, Advertiser, Admin, and Rider endpoints",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api"
+    },
+    {
+      "url": "https://localhost:3000/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Driver Dashboard",
+      "description": "Driver-facing endpoints"
+    },
+    {
+      "name": "Advertiser Dashboard",
+      "description": "Advertiser/Business endpoints"
+    },
+    {
+      "name": "Admin Dashboard",
+      "description": "Admin management endpoints"
+    },
+    {
+      "name": "Rider",
+      "description": "Rider/Passenger endpoints"
+    },
+    {
+      "name": "QR Scanning",
+      "description": "QR code scanning and tracking"
+    },
+    {
+      "name": "Payments",
+      "description": "Payment processing endpoints"
+    },
+    {
+      "name": "Notifications",
+      "description": "Notification system"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and reporting"
+    },
+    {
+      "name": "Support",
+      "description": "Support ticket system"
+    },
+    {
+      "name": "Authentication",
+      "description": "Auth and session management"
+    }
+  ],
+  "paths": {
+    "{{collectionad-campaigns}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectiondriver-magazines}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionsystem-settings}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionnotification-templates}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionpayment-gateway-config}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionmagazine-pickup-locations}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionadmin-roles}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionprofile-picturesasany}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "{{collectionprofile-pictures-cloudasany}": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "example": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "message": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "example": {
+                    "type": "string",
+                    "example": "Error message"
+                  }
+                }
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "example": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "message": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "description": "Enter your bearer token in the format: Bearer <token>"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
