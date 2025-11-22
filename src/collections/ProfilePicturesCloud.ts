@@ -262,7 +262,8 @@ export const ProfilePicturesCloud: CollectionConfig = {
         // If this is a new profile picture, deactivate other profile pictures for the same owner
         if (operation === 'create' && doc.ownerType && doc.ownerId) {
           try {
-            await req.payload.update({
+            // Find other active profile pictures for the same owner
+            const existingPics = await req.payload.find({
               collection: 'profile-pictures-cloud',
               where: {
                 and: [
@@ -271,10 +272,19 @@ export const ProfilePicturesCloud: CollectionConfig = {
                   { id: { not_equals: doc.id } },
                 ],
               },
-              data: {
-                isActive: false,
-              },
+              limit: 1000,
             })
+
+            // Update each one individually
+            for (const pic of existingPics.docs) {
+              await req.payload.update({
+                collection: 'profile-pictures-cloud',
+                id: pic.id,
+                data: {
+                  isActive: false,
+                },
+              })
+            }
           } catch (error) {
             console.error('Error deactivating other profile pictures:', error)
           }

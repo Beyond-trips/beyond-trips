@@ -8,7 +8,7 @@ if (!stripeApiKey) {
 }
 
 export const stripe = new Stripe(stripeApiKey || 'sk_test_dummy', {
-  apiVersion: '2024-04-10',
+  apiVersion: '2024-04-10' as any, // Type assertion to bypass strict version checking
 })
 
 // Stripe webhook secret for verifying webhook signatures

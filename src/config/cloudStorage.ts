@@ -74,7 +74,7 @@ export class CloudStorageService {
       }
     } catch (error) {
       console.error('S3 upload error:', error)
-      throw new Error(`Failed to upload file: ${error.message}`)
+      throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -135,7 +135,7 @@ export class CloudStorageService {
       await s3.deleteObject(params).promise()
     } catch (error) {
       console.error('S3 delete error:', error)
-      throw new Error(`Failed to delete file: ${error.message}`)
+      throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -156,7 +156,7 @@ export class CloudStorageService {
       }
     } catch (error) {
       console.error('S3 metadata error:', error)
-      throw new Error(`Failed to get file metadata: ${error.message}`)
+      throw new Error(`Failed to get file metadata: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -172,7 +172,7 @@ export class CloudStorageService {
       return await s3.getSignedUrl('getObject', params)
     } catch (error) {
       console.error('S3 signed URL error:', error)
-      throw new Error(`Failed to generate signed URL: ${error.message}`)
+      throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -189,7 +189,7 @@ export class CloudStorageService {
       return result.Contents || []
     } catch (error) {
       console.error('S3 list error:', error)
-      throw new Error(`Failed to list files: ${error.message}`)
+      throw new Error(`Failed to list files: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }

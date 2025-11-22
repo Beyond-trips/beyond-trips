@@ -9,8 +9,9 @@ export const QREngagements: CollectionConfig = {
   access: {
     create: () => true, // Public endpoint can create engagements
     read: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true // Admins see all
-      if (user?.role === 'partner') {
+      if (!user) return false
+      if (user.role === 'admin') return true // Admins see all
+      if ((user as any).role === 'partner') {
         // Partners only see engagements for their campaigns
         return {
           'qrCode.campaign.advertiser': {

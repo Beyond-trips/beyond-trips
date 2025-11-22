@@ -244,7 +244,7 @@ const SupportTickets: CollectionConfig = {
         // Set user role from authenticated user
         if (operation === 'create' && req.user) {
           data.userRole = req.user.role === 'admin' ? 'admin' : 
-                          req.user.role === 'partner' ? 'advertiser' : 'driver'
+                          (req.user as any).role === 'partner' ? 'advertiser' : 'driver'
         }
 
         // Track resolution

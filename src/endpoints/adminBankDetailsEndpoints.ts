@@ -111,12 +111,12 @@ const upsertDriverBankDetails = async (
     await payload.update({
       collection: 'user-bank-details',
       id: existing.docs[0].id,
-      data: bankData,
+      data: bankData as any, // Type assertion to allow partial updates
     })
   } else {
     await payload.create({
       collection: 'user-bank-details',
-      data: bankData,
+      data: bankData as any, // Type assertion to allow partial updates
     })
   }
 }
