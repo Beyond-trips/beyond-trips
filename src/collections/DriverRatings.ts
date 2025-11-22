@@ -12,8 +12,9 @@ export const DriverRatings: CollectionConfig = {
       return true // Public can also read ratings
     },
     update: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true
-      if (user?.role === 'driver') return true // Drivers can respond to reviews
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if ((user as any).role === 'driver') return true // Drivers can respond to reviews
       return false
     },
     delete: ({ req: { user } }) => {

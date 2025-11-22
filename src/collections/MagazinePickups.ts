@@ -404,7 +404,7 @@ const MagazinePickups: CollectionConfig = {
                 title: 'Magazine Returned Successfully',
                 message: 'Thank you for returning the magazines. Your earnings will be processed soon.',
                 isRead: false,
-                priority: 'normal',
+                priority: 'medium',
               },
             })
             console.log('✅ Return confirmation notification sent to driver:', doc.driver)

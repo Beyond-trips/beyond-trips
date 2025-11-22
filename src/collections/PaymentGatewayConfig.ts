@@ -11,16 +11,20 @@ const PaymentGatewayConfig: CollectionConfig = {
   access: {
     // Only admins can manage payment gateways
     read: ({ req: { user } }) => {
-      return user?.role === 'admin' || user?.role === 'super-admin'
+      if (!user) return false
+      return user.role === 'admin' || (user as any).role === 'super-admin'
     },
     create: ({ req: { user } }) => {
-      return user?.role === 'admin' || user?.role === 'super-admin'
+      if (!user) return false
+      return user.role === 'admin' || (user as any).role === 'super-admin'
     },
     update: ({ req: { user } }) => {
-      return user?.role === 'admin' || user?.role === 'super-admin'
+      if (!user) return false
+      return user.role === 'admin' || (user as any).role === 'super-admin'
     },
     delete: ({ req: { user } }) => {
-      return user?.role === 'admin' || user?.role === 'super-admin'
+      if (!user) return false
+      return user.role === 'admin' || (user as any).role === 'super-admin'
     },
   },
   fields: [

@@ -9,8 +9,9 @@ export const BTLCoinAwards: CollectionConfig = {
   access: {
     create: () => true, // System can create awards automatically
     read: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true
-      if (user?.role === 'driver') {
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if ((user as any).role === 'driver') {
         // Drivers can only see their own awards
         return {
           driver: {
@@ -127,6 +128,8 @@ export const BTLCoinAwards: CollectionConfig = {
   hooks: {
     beforeValidate: [
       ({ data }) => {
+        if (!data) return data // Guard against undefined data
+        
         // Ensure amount is always 1
         if (data.amount !== 1) {
           data.amount = 1
