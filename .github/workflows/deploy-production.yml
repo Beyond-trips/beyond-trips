@@ -1,0 +1,107 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://beyond-trips-backend2.onrender.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify main branch
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "❌ Production deployments only allowed from main branch"
+            exit 1
+          fi
+          echo "✅ Deploying from main branch"
+      
+      - name: Notify deployment started
+        run: |
+          echo "🚀 PRODUCTION DEPLOYMENT INITIATED"
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Message: ${{ github.event.head_commit.message }}"
+      
+      - name: Wait for Render deployment
+        run: |
+          echo "⏳ Waiting for Render to complete deployment..."
+          echo "Render will automatically deploy when main branch is updated"
+          sleep 45
+      
+      - name: Production health check
+        run: |
+          echo "🏥 Running production health checks..."
+          MAX_RETRIES=15
+          RETRY_COUNT=0
+          HEALTH_URL="https://beyond-trips-backend2.onrender.com/api/health"
+          
+          until curl -f -s "$HEALTH_URL" || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES"
+            sleep 10
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ CRITICAL: Production health check failed after $MAX_RETRIES attempts"
+            echo "Service may be down or health endpoint not responding"
+            exit 1
+          fi
+          
+          echo "✅ Production deployment verified and healthy"
+      
+      - name: Verify API endpoints
+        run: |
+          echo "🔍 Verifying critical API endpoints..."
+          
+          # Test root endpoint
+          if curl -f -s "https://beyond-trips-backend2.onrender.com/" > /dev/null; then
+            echo "✅ Root endpoint responding"
+          else
+            echo "⚠️  Root endpoint not responding (may be expected)"
+          fi
+          
+          # Test admin endpoint
+          if curl -f -s "https://beyond-trips-backend2.onrender.com/admin" > /dev/null; then
+            echo "✅ Admin panel accessible"
+          else
+            echo "⚠️  Admin panel check inconclusive"
+          fi
+      
+      - name: Post-deployment summary
+        if: always()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 DEPLOYMENT SUMMARY"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Environment: Production"
+          echo "URL: https://beyond-trips-backend2.onrender.com"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Status: ${{ job.status }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Production deployment successful!"
+          else
+            echo "❌ Production deployment encountered issues"
+          fi
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "🚨 DEPLOYMENT FAILED 🚨"
+          echo "Please check the logs and investigate immediately"
+          echo "Service URL: https://beyond-trips-backend2.onrender.com"
+
