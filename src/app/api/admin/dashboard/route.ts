@@ -4,14 +4,8 @@ import config from '@payload-config'
 import {
   getAdminDashboardOverview,
   getPendingCampaigns,
-  getAllCampaigns,
   approveCampaign,
   rejectCampaign,
-  getPendingApprovals,
-  getRecentActivity,
-  getUserStats,
-  getCampaignStats,
-  getFinancialStats,
   exportAnalytics,
   getSystemAnalytics
 } from '../../../../endpoints/adminDashboardEndpoints'
@@ -70,22 +64,46 @@ export async function GET(req: NextRequest) {
         return await getPendingCampaigns(payloadRequest)
       
       case 'all-campaigns':
-        return await getAllCampaigns(payloadRequest)
+        // TODO: Implement getAllCampaigns function
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getAllCampaigns function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'pending-approvals':
-        return await getPendingApprovals(payloadRequest)
+        // TODO: Implement getPendingApprovals function (unified view of all pending items)
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getPendingApprovals function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'recent-activity':
-        return await getRecentActivity(payloadRequest)
+        // TODO: Implement getRecentActivity function (query NotificationLogs collection)
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getRecentActivity function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'user-stats':
-        return await getUserStats(payloadRequest)
+        // TODO: Implement getUserStats function (aggregated user statistics)
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getUserStats function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'campaign-stats':
-        return await getCampaignStats(payloadRequest)
+        // TODO: Implement getCampaignStats function (detailed campaign performance)
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getCampaignStats function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'financial-stats':
-        return await getFinancialStats(payloadRequest)
+        // TODO: Implement getFinancialStats function (dedicated financial reporting)
+        return new Response(JSON.stringify({ 
+          error: 'Not implemented yet',
+          message: 'getFinancialStats function needs to be implemented'
+        }), { status: 501, headers: { 'Content-Type': 'application/json' } })
       
       case 'export-analytics':
         return await exportAnalytics(payloadRequest)

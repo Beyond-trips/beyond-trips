@@ -31,24 +31,16 @@ export async function GET(req: NextRequest) {
     const payloadRequest = req as PayloadRequest
     payloadRequest.payload = payload
 
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    const token = authHeader.replace('JWT ', '')
+    // Use Payload's built-in authentication
     try {
-      const authResponse = await payload.auth({ token })
-      if (!authResponse) {
-        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+      const authResponse = await payload.auth({ headers: req.headers })
+      if (!authResponse.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         })
       }
-      payloadRequest.user = authResponse.user || authResponse
+      payloadRequest.user = authResponse.user
     } catch (e) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
