@@ -80,7 +80,11 @@ export interface Config {
     'driver-earnings': DriverEarning;
     'driver-withdrawals': DriverWithdrawal;
     'driver-ratings': DriverRating;
+    'btl-coin-awards': BtlCoinAward;
     'driver-notifications': DriverNotification;
+    'driver-notification-preferences': DriverNotificationPreference;
+    'advertiser-notifications': AdvertiserNotification;
+    'admin-notifications': AdminNotification;
     'driver-magazines': DriverMagazine;
     'driver-magazine-reads': DriverMagazineRead;
     'campaign-performance': CampaignPerformance;
@@ -88,6 +92,19 @@ export interface Config {
     invoices: Invoice;
     'analytics-data': AnalyticsDatum;
     'profile-pictures': ProfilePicture;
+    'bank-details-requests': BankDetailsRequest;
+    'magazine-pickups': MagazinePickup;
+    'system-settings': SystemSetting;
+    'admin-roles': AdminRole;
+    'notification-templates': NotificationTemplate;
+    'payment-gateway-config': PaymentGatewayConfig;
+    'driver-scans': DriverScan;
+    'advertiser-qr-codes': AdvertiserQrCode;
+    'qr-engagements': QrEngagement;
+    'magazine-pickup-locations': MagazinePickupLocation;
+    'support-tickets': SupportTicket;
+    'notification-logs': NotificationLog;
+    'user-sessions': UserSession;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -107,7 +124,11 @@ export interface Config {
     'driver-earnings': DriverEarningsSelect<false> | DriverEarningsSelect<true>;
     'driver-withdrawals': DriverWithdrawalsSelect<false> | DriverWithdrawalsSelect<true>;
     'driver-ratings': DriverRatingsSelect<false> | DriverRatingsSelect<true>;
+    'btl-coin-awards': BtlCoinAwardsSelect<false> | BtlCoinAwardsSelect<true>;
     'driver-notifications': DriverNotificationsSelect<false> | DriverNotificationsSelect<true>;
+    'driver-notification-preferences': DriverNotificationPreferencesSelect<false> | DriverNotificationPreferencesSelect<true>;
+    'advertiser-notifications': AdvertiserNotificationsSelect<false> | AdvertiserNotificationsSelect<true>;
+    'admin-notifications': AdminNotificationsSelect<false> | AdminNotificationsSelect<true>;
     'driver-magazines': DriverMagazinesSelect<false> | DriverMagazinesSelect<true>;
     'driver-magazine-reads': DriverMagazineReadsSelect<false> | DriverMagazineReadsSelect<true>;
     'campaign-performance': CampaignPerformanceSelect<false> | CampaignPerformanceSelect<true>;
@@ -115,6 +136,19 @@ export interface Config {
     invoices: InvoicesSelect<false> | InvoicesSelect<true>;
     'analytics-data': AnalyticsDataSelect<false> | AnalyticsDataSelect<true>;
     'profile-pictures': ProfilePicturesSelect<false> | ProfilePicturesSelect<true>;
+    'bank-details-requests': BankDetailsRequestsSelect<false> | BankDetailsRequestsSelect<true>;
+    'magazine-pickups': MagazinePickupsSelect<false> | MagazinePickupsSelect<true>;
+    'system-settings': SystemSettingsSelect<false> | SystemSettingsSelect<true>;
+    'admin-roles': AdminRolesSelect<false> | AdminRolesSelect<true>;
+    'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
+    'payment-gateway-config': PaymentGatewayConfigSelect<false> | PaymentGatewayConfigSelect<true>;
+    'driver-scans': DriverScansSelect<false> | DriverScansSelect<true>;
+    'advertiser-qr-codes': AdvertiserQrCodesSelect<false> | AdvertiserQrCodesSelect<true>;
+    'qr-engagements': QrEngagementsSelect<false> | QrEngagementsSelect<true>;
+    'magazine-pickup-locations': MagazinePickupLocationsSelect<false> | MagazinePickupLocationsSelect<true>;
+    'support-tickets': SupportTicketsSelect<false> | SupportTicketsSelect<true>;
+    'notification-logs': NotificationLogsSelect<false> | NotificationLogsSelect<true>;
+    'user-sessions': UserSessionsSelect<false> | UserSessionsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -185,6 +219,24 @@ export interface User {
    * who referred user
    */
   references?: string | null;
+  notificationPreferences?: {
+    /**
+     * Receive notifications via email
+     */
+    email_enabled?: boolean | null;
+    /**
+     * Receive notifications via SMS
+     */
+    sms_enabled?: boolean | null;
+    /**
+     * Receive in-app notifications
+     */
+    in_app_enabled?: boolean | null;
+    /**
+     * Types of notifications to receive
+     */
+    notification_types?: ('payment' | 'campaign' | 'magazine' | 'system')[] | null;
+  };
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -204,6 +256,25 @@ export interface Media {
   id: string;
   alt: string;
   caption?: string | null;
+  /**
+   * How this media is being used in the system
+   */
+  usageType?:
+    | ('driver_doc' | 'campaign_media' | 'profile_picture' | 'magazine_qr' | 'advertiser_qr' | 'general')
+    | null;
+  /**
+   * S3 URL for this media file (preferred over local URL)
+   */
+  s3Url?: string | null;
+  /**
+   * S3 key for this media file
+   */
+  s3Key?: string | null;
+  /**
+   * S3 bucket name
+   */
+  s3Bucket?: string | null;
+  prefix?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -305,6 +376,7 @@ export interface ProfilePicture {
    * File size in bytes
    */
   fileSize?: number | null;
+  prefix?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -356,6 +428,10 @@ export interface AdCampaign {
   campaignName: string;
   campaignDescription?: string | null;
   campaignType: 'magazine' | 'digital' | 'qr_engagement';
+  /**
+   * Linked magazine edition (auto-linked when admin creates new magazine)
+   */
+  magazine?: (string | null) | DriverMagazine;
   budget: number;
   budgetSpent?: number | null;
   startDate: string;
@@ -369,6 +445,30 @@ export interface AdCampaign {
   reviewedAt?: string | null;
   rejectionReason?: string | null;
   notes?: string | null;
+  /**
+   * Enable QR code generation for this campaign
+   */
+  enableQRCampaign?: boolean | null;
+  /**
+   * Generated QR code for this campaign
+   */
+  qrCode?: (string | null) | AdvertiserQrCode;
+  /**
+   * Title of promotional offer (e.g., "40% Hotel Discount")
+   */
+  promoTitle?: string | null;
+  /**
+   * Description of the offer
+   */
+  promoDescription?: string | null;
+  /**
+   * URL where users redeem the offer
+   */
+  promoLink?: string | null;
+  /**
+   * Terms and conditions
+   */
+  promoTerms?: string | null;
   pausedAt?: string | null;
   pauseReason?: string | null;
   resumedAt?: string | null;
@@ -379,6 +479,184 @@ export interface AdCampaign {
   lastStatusChange?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "driver-magazines".
+ */
+export interface DriverMagazine {
+  id: string;
+  /**
+   * Magazine title
+   */
+  title: string;
+  /**
+   * Magazine description
+   */
+  description?: string | null;
+  /**
+   * Magazine content
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Magazine cover image URL
+   */
+  imageUrl?: string | null;
+  /**
+   * Estimated read time in minutes
+   */
+  readTime?: number | null;
+  category: 'news' | 'tips' | 'safety' | 'earnings' | 'community' | 'updates';
+  /**
+   * Whether this magazine is published
+   */
+  isPublished?: boolean | null;
+  /**
+   * When this magazine was published
+   */
+  publishedAt?: string | null;
+  /**
+   * Tags for categorization
+   */
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Magazine edition number (e.g., 1, 2, 3...)
+   */
+  editionNumber: number;
+  /**
+   * Magazine issue date
+   */
+  issueDate?: string | null;
+  /**
+   * Total number of physical copies printed for this edition
+   */
+  totalCopiesPrinted?: number | null;
+  /**
+   * Magazine edition status (only one edition can be active at a time)
+   */
+  status: 'active' | 'archived';
+  /**
+   * Is this the currently active magazine edition? (Only one can be active)
+   */
+  isActive?: boolean | null;
+  /**
+   * Unique barcode for this magazine edition (for scanning)
+   */
+  barcode?: string | null;
+  /**
+   * S3 URL for the QR code image (preferred over base64)
+   */
+  qrImageUrl?: string | null;
+  /**
+   * Base64 encoded QR code image of the barcode (legacy - use qrImageUrl instead)
+   */
+  barcodeImage?: string | null;
+  /**
+   * Serial number of physical magazine copy
+   */
+  serialNumber?: string | null;
+  /**
+   * Total number of times this magazine was scanned
+   */
+  scansCount?: number | null;
+  /**
+   * Whether this magazine has been physically printed (prevents new campaign linking)
+   */
+  isPrinted?: boolean | null;
+  /**
+   * Timestamp when this magazine was marked as printed
+   */
+  printedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advertiser-qr-codes".
+ */
+export interface AdvertiserQrCode {
+  id: string;
+  /**
+   * Campaign this QR code belongs to
+   */
+  campaign: string | AdCampaign;
+  /**
+   * Unique QR code identifier (e.g., ADV-HOTEL-2025-001)
+   */
+  qrCode: string;
+  /**
+   * S3 URL for the QR code image (preferred over base64)
+   */
+  qrImageUrl?: string | null;
+  /**
+   * Base64 encoded QR code image data (legacy - use qrImageUrl instead)
+   */
+  qrImageData?: string | null;
+  /**
+   * Title of the promotional offer (e.g., "40% Hotel Discount")
+   */
+  promoTitle: string;
+  /**
+   * Description of what the user gets
+   */
+  promoDescription?: string | null;
+  /**
+   * URL where user is redirected to redeem offer
+   */
+  promoLink: string;
+  /**
+   * Terms and conditions of the offer
+   */
+  promoTerms?: string | null;
+  /**
+   * When the QR code/offer expires
+   */
+  expiresAt?: string | null;
+  /**
+   * Total number of times this QR code was scanned
+   */
+  scansCount?: number | null;
+  /**
+   * Number of unique devices that scanned this QR
+   */
+  uniqueScansCount?: number | null;
+  /**
+   * Number of successful redemptions
+   */
+  redemptionsCount?: number | null;
+  /**
+   * Current status of the QR code
+   */
+  status: 'active' | 'paused' | 'expired' | 'inactive';
+  /**
+   * Maximum number of scans allowed (optional limit)
+   */
+  maxScans?: number | null;
+  /**
+   * Percentage of scans that led to redemptions
+   */
+  conversionRate?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -448,8 +726,41 @@ export interface UserDocument {
   userId: string | User;
   documentType: 'drivers_license' | 'national_id' | 'vehicle_registration';
   documentFile: string | Media;
+  /**
+   * Current KYC verification status of this document
+   */
+  documentStatus: 'pending' | 'under_review' | 'verified' | 'rejected' | 'expired' | 'resubmitted';
+  /**
+   * Legacy field - use documentStatus instead
+   */
   verificationStatus?: ('pending' | 'approved' | 'rejected') | null;
+  /**
+   * Timestamp when document was verified
+   */
+  verifiedAt?: string | null;
+  /**
+   * Admin user who verified this document
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * Document expiration date (e.g., license expiry)
+   */
+  expiresAt?: string | null;
+  /**
+   * Reason for document rejection
+   */
   rejectionReason?: string | null;
+  /**
+   * Timestamp when document was resubmitted after rejection
+   */
+  resubmittedAt?: string | null;
+  /**
+   * Internal admin notes about this document
+   */
+  adminNotes?: string | null;
+  /**
+   * Initial upload timestamp
+   */
   uploadedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -554,10 +865,16 @@ export interface UserOnboarding {
    * Internal notes for admin review
    */
   notes?: string | null;
+  /**
+   * Reason for registration rejection (shown to driver)
+   */
+  rejectionReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * Driver earnings from BTL coins and admin bonuses
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "driver-earnings".
  */
@@ -580,8 +897,15 @@ export interface DriverEarning {
    */
   amount: number;
   currency: 'USD' | 'EUR' | 'GBP' | 'NGN';
+  /**
+   * Type of earnings (scan_payment is deprecated - no longer created)
+   */
   type: 'scan_payment' | 'trip_payment' | 'bonus' | 'referral' | 'incentive' | 'other';
-  status: 'pending' | 'paid' | 'failed' | 'cancelled';
+  /**
+   * Source of the earnings (BTL coin = primary, scan = deprecated/historical only)
+   */
+  source?: ('scan' | 'btl_coin' | 'trip' | 'other') | null;
+  status: 'active' | 'archived' | 'failed' | 'cancelled';
   /**
    * Description of the earnings
    */
@@ -660,9 +984,21 @@ export interface DriverRating {
    */
   driver: string | User;
   /**
-   * User who gave the rating
+   * Name of the person who gave the rating (for unauthenticated riders)
    */
-  rater: string | User;
+  raterName?: string | null;
+  /**
+   * Email of the person who gave the rating (optional)
+   */
+  raterEmail?: string | null;
+  /**
+   * Phone number of the rider (optional, for verification)
+   */
+  raterPhone?: string | null;
+  /**
+   * Device fingerprint to prevent duplicate ratings from same device
+   */
+  deviceFingerprint?: string | null;
   /**
    * Rating from 1 to 5 stars
    */
@@ -688,6 +1024,86 @@ export interface DriverRating {
    * Driver response to the rating
    */
   response?: string | null;
+  /**
+   * When the driver responded
+   */
+  respondedAt?: string | null;
+  /**
+   * Whether this rating has been reviewed by admin
+   */
+  isModerated?: boolean | null;
+  /**
+   * Admin who moderated this rating
+   */
+  moderatedBy?: (string | null) | User;
+  /**
+   * Admin notes on moderation
+   */
+  moderationNotes?: string | null;
+  /**
+   * Magazine barcode scanned by rider (links review to BTL coin system)
+   */
+  magazineBarcode?: string | null;
+  /**
+   * Whether a BTL coin was awarded for this review
+   */
+  btlCoinAwarded?: boolean | null;
+  /**
+   * When the rider scanned the magazine barcode
+   */
+  scanTimestamp?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * BTL Coin awards for driver engagement from rider interactions
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "btl-coin-awards".
+ */
+export interface BtlCoinAward {
+  id: string;
+  /**
+   * Driver who received the BTL coin
+   */
+  driver: string | User;
+  /**
+   * Magazine edition that was scanned
+   */
+  magazine: string | DriverMagazine;
+  /**
+   * Barcode that was scanned by the rider
+   */
+  magazineBarcode: string;
+  /**
+   * Review submitted by the rider
+   */
+  review?: (string | null) | DriverRating;
+  /**
+   * Device fingerprint of the rider (for tracking)
+   */
+  riderDeviceId?: string | null;
+  /**
+   * Name of the rider who submitted the review
+   */
+  riderName?: string | null;
+  /**
+   * Number of BTL coins awarded (always 1)
+   */
+  amount: number;
+  /**
+   * Driver earning record created for this BTL coin
+   */
+  earningRecord?: (string | null) | DriverEarning;
+  status: 'awarded' | 'processed' | 'cancelled';
+  /**
+   * When the BTL coin was awarded
+   */
+  awardedAt: string;
+  /**
+   * Additional notes or context
+   */
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -701,7 +1117,18 @@ export interface DriverNotification {
    * Driver who will receive this notification
    */
   driver: string | User;
-  type: 'earnings' | 'rating' | 'trip' | 'system' | 'payment' | 'document' | 'training' | 'general';
+  type:
+    | 'payout'
+    | 'earnings'
+    | 'magazine'
+    | 'profile'
+    | 'rating'
+    | 'trip'
+    | 'system'
+    | 'payment'
+    | 'document'
+    | 'training'
+    | 'general';
   /**
    * Notification title
    */
@@ -723,67 +1150,295 @@ export interface DriverNotification {
    * When this notification expires
    */
   expiresAt?: string | null;
+  /**
+   * When the notification was read
+   */
+  readAt?: string | null;
+  /**
+   * Additional notification metadata (payoutId, amount, magazineName, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Related payout ID (for payout notifications)
+   */
+  payoutId?: string | null;
+  /**
+   * Amount (for earnings/payout notifications)
+   */
+  amount?: number | null;
+  /**
+   * Payout status (for payout notifications)
+   */
+  payoutStatus?: string | null;
+  /**
+   * Earnings amount (for earnings notifications)
+   */
+  earningsAmount?: number | null;
+  /**
+   * Related campaign ID (for earnings notifications)
+   */
+  campaignId?: string | null;
+  /**
+   * Magazine name (for magazine notifications)
+   */
+  magazineName?: string | null;
+  /**
+   * Pickup location (for magazine notifications)
+   */
+  pickupLocation?: string | null;
+  /**
+   * Due date (for magazine notifications)
+   */
+  dueDate?: string | null;
+  /**
+   * Whether action is required (for magazine notifications)
+   */
+  actionRequired?: boolean | null;
+  /**
+   * Profile field name (for profile notifications)
+   */
+  profileField?: string | null;
+  /**
+   * Document type (for profile notifications)
+   */
+  documentType?: string | null;
+  /**
+   * Verification status (for profile notifications)
+   */
+  verificationStatus?: string | null;
+  /**
+   * Security level (for profile/security notifications)
+   */
+  securityLevel?: ('low' | 'medium' | 'high') | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "driver-magazines".
+ * via the `definition` "driver-notification-preferences".
  */
-export interface DriverMagazine {
+export interface DriverNotificationPreference {
   id: string;
   /**
-   * Magazine title
+   * Driver who owns these notification preferences
+   */
+  driver: string | User;
+  /**
+   * Enable email notifications
+   */
+  emailNotifications?: boolean | null;
+  /**
+   * Enable SMS notifications
+   */
+  smsNotifications?: boolean | null;
+  /**
+   * Enable push notifications
+   */
+  pushNotifications?: boolean | null;
+  /**
+   * Receive payout alerts
+   */
+  payoutAlerts?: boolean | null;
+  /**
+   * Receive earnings alerts
+   */
+  earningsAlerts?: boolean | null;
+  /**
+   * Receive magazine alerts
+   */
+  magazineAlerts?: boolean | null;
+  /**
+   * Receive profile alerts
+   */
+  profileAlerts?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advertiser-notifications".
+ */
+export interface AdvertiserNotification {
+  id: string;
+  /**
+   * Advertiser who will receive this notification
+   */
+  advertiser: string | BusinessDetail;
+  type:
+    | 'campaign_status'
+    | 'creative_approval'
+    | 'creative_rejection'
+    | 'invoice_payment'
+    | 'invoice_cancellation'
+    | 'support_response'
+    | 'support_resolution'
+    | 'system'
+    | 'payment'
+    | 'general';
+  /**
+   * Notification title
    */
   title: string;
   /**
-   * Magazine description
+   * Notification message content
    */
-  description?: string | null;
+  message: string;
   /**
-   * Magazine content
+   * Whether the notification has been read
    */
-  content?: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
+  isRead?: boolean | null;
   /**
-   * Magazine cover image URL
+   * URL to navigate to when notification is clicked
    */
-  imageUrl?: string | null;
+  actionUrl?: string | null;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   /**
-   * Estimated read time in minutes
+   * When this notification expires
    */
-  readTime?: number | null;
-  category: 'news' | 'tips' | 'safety' | 'earnings' | 'community' | 'updates';
+  expiresAt?: string | null;
   /**
-   * Whether this magazine is published
+   * When the notification was read
    */
-  isPublished?: boolean | null;
+  readAt?: string | null;
   /**
-   * When this magazine was published
+   * Additional notification metadata (campaignId, invoiceId, creativeId, etc.)
    */
-  publishedAt?: string | null;
-  /**
-   * Tags for categorization
-   */
-  tags?:
+  metadata?:
     | {
-        tag?: string | null;
-        id?: string | null;
-      }[]
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
+  /**
+   * Related campaign ID
+   */
+  campaignId?: string | null;
+  /**
+   * Campaign status (for campaign notifications)
+   */
+  campaignStatus?: string | null;
+  /**
+   * Related creative ID
+   */
+  creativeId?: string | null;
+  /**
+   * Creative file name
+   */
+  creativeName?: string | null;
+  /**
+   * Rejection reason (for rejected creatives/campaigns)
+   */
+  rejectionReason?: string | null;
+  /**
+   * Related invoice ID
+   */
+  invoiceId?: string | null;
+  /**
+   * Invoice number
+   */
+  invoiceNumber?: string | null;
+  /**
+   * Amount (for invoice/payment notifications)
+   */
+  amount?: number | null;
+  /**
+   * Related support ticket ID
+   */
+  ticketId?: string | null;
+  /**
+   * Support ticket number
+   */
+  ticketNumber?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-notifications".
+ */
+export interface AdminNotification {
+  id: string;
+  /**
+   * Admin user who will receive this notification (optional - can broadcast to all admins)
+   */
+  admin?: (string | null) | User;
+  type:
+    | 'support_ticket'
+    | 'gdpr_request'
+    | 'new_driver'
+    | 'new_advertiser'
+    | 'system_alert'
+    | 'driver_request'
+    | 'advertiser_request'
+    | 'general';
+  /**
+   * Notification title
+   */
+  title: string;
+  /**
+   * Notification message content
+   */
+  message: string;
+  /**
+   * Whether the notification has been read
+   */
+  isRead?: boolean | null;
+  /**
+   * URL to navigate to when notification is clicked
+   */
+  actionUrl?: string | null;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  /**
+   * When this notification expires
+   */
+  expiresAt?: string | null;
+  /**
+   * When the notification was read
+   */
+  readAt?: string | null;
+  /**
+   * Additional notification metadata
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Related support ticket ID
+   */
+  ticketId?: string | null;
+  /**
+   * Support ticket number
+   */
+  ticketNumber?: string | null;
+  /**
+   * Related user ID (driver/advertiser)
+   */
+  userId?: string | null;
+  /**
+   * Related user email
+   */
+  userEmail?: string | null;
+  /**
+   * Type of request (withdrawal, bank_update, etc.)
+   */
+  requestType?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -846,16 +1501,36 @@ export interface CampaignMedia {
   id: string;
   campaignId: string | AdCampaign;
   businessId: string | BusinessDetail;
-  fileName: string;
-  fileType: 'pdf' | 'jpeg' | 'png' | 'gif' | 'mp4' | 'other';
-  fileUrl: string;
-  fileSize: number;
+  /**
+   * ✅ Media file from Media collection (preferred - automatically uploads to S3)
+   */
+  mediaFile: string | Media;
   description?: string | null;
   uploadStatus?: ('uploading' | 'completed' | 'failed') | null;
+  /**
+   * Creative approval status
+   */
+  approvalStatus: 'pending' | 'under_review' | 'approved' | 'rejected';
+  /**
+   * Legacy field - use approvalStatus instead
+   */
   isApproved?: boolean | null;
+  /**
+   * Admin who approved/rejected this creative
+   */
   approvedBy?: (string | null) | User;
+  /**
+   * Timestamp when creative was approved
+   */
   approvedAt?: string | null;
+  /**
+   * Reason for creative rejection (shown to advertiser)
+   */
   rejectionReason?: string | null;
+  /**
+   * Internal admin notes about this creative
+   */
+  adminNotes?: string | null;
   uploadedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -936,6 +1611,889 @@ export interface AnalyticsDatum {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-details-requests".
+ */
+export interface BankDetailsRequest {
+  id: string;
+  /**
+   * Driver who requested the bank details update
+   */
+  driver: string | User;
+  oldBankDetails: {
+    /**
+     * Previous bank name
+     */
+    bankName: string;
+    /**
+     * Previous account number
+     */
+    accountNumber: string;
+    /**
+     * Previous account holder name
+     */
+    accountName: string;
+  };
+  newBankDetails: {
+    /**
+     * New bank name
+     */
+    bankName: string;
+    /**
+     * New account number
+     */
+    accountNumber: string;
+    /**
+     * New account holder name
+     */
+    accountName: string;
+  };
+  /**
+   * Reason for requesting bank details change
+   */
+  reason: string;
+  /**
+   * Current status of the request
+   */
+  status: 'pending' | 'approved' | 'rejected';
+  /**
+   * Admin notes (visible only to admins)
+   */
+  adminNotes?: string | null;
+  /**
+   * Reason for rejection (required if rejected)
+   */
+  rejectionReason?: string | null;
+  /**
+   * Bank account verification status
+   */
+  verificationStatus?: ('unverified' | 'verified' | 'failed') | null;
+  /**
+   * Verification details or notes
+   */
+  verificationNotes?: string | null;
+  /**
+   * When the request was submitted
+   */
+  requestedAt?: string | null;
+  /**
+   * When the request was processed
+   */
+  processedAt?: string | null;
+  /**
+   * Admin who processed the request
+   */
+  processedBy?: (string | null) | User;
+  /**
+   * Whether driver was notified of the decision
+   */
+  notificationSent?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "magazine-pickups".
+ */
+export interface MagazinePickup {
+  id: string;
+  /**
+   * Driver requesting the magazine pickup
+   */
+  driver: string | User;
+  /**
+   * Magazine edition to be picked up
+   */
+  magazine: string | DriverMagazine;
+  /**
+   * Number of magazines to pick up
+   */
+  quantity: number;
+  location: {
+    /**
+     * Location name (e.g., "Lagos HQ")
+     */
+    name: string;
+    /**
+     * Full address
+     */
+    address: string;
+    /**
+     * Contact person at location
+     */
+    contactPerson?: string | null;
+    /**
+     * Contact phone number
+     */
+    contactPhone?: string | null;
+  };
+  /**
+   * Preferred pickup date
+   */
+  pickupDate?: string | null;
+  /**
+   * Expected return date
+   */
+  returnDate?: string | null;
+  /**
+   * Actual return date
+   */
+  actualReturnDate?: string | null;
+  /**
+   * Current status of the pickup
+   */
+  status: 'requested' | 'approved' | 'rejected' | 'picked-up' | 'active' | 'returned' | 'lost' | 'damaged';
+  /**
+   * QR code for pickup/return verification
+   */
+  qrCode?: string | null;
+  /**
+   * Driver notes or special requests
+   */
+  notes?: string | null;
+  /**
+   * Admin notes (visible only to admins)
+   */
+  adminNotes?: string | null;
+  /**
+   * Reason for rejection
+   */
+  rejectionReason?: string | null;
+  /**
+   * When the pickup was requested
+   */
+  requestedAt?: string | null;
+  /**
+   * When the pickup was approved
+   */
+  approvedAt?: string | null;
+  /**
+   * Admin who approved the pickup
+   */
+  approvedBy?: (string | null) | User;
+  /**
+   * When magazines were actually picked up
+   */
+  pickedUpAt?: string | null;
+  /**
+   * When driver activated the magazine to their account
+   */
+  activatedAt?: string | null;
+  /**
+   * Barcode scanned during activation (TEST MODE: manually set to TEST-MAG-BTL-2025)
+   */
+  activationBarcode?: string | null;
+  /**
+   * Verification code for pickup confirmation
+   */
+  verificationCode?: string | null;
+  /**
+   * Whether earnings have been synced for this pickup
+   */
+  earningSynced?: boolean | null;
+  /**
+   * Number of times riders scanned this magazine for reviews
+   */
+  riderScans?: number | null;
+  /**
+   * Number of BTL coins earned from rider interactions
+   */
+  btlCoinsEarned?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Platform configuration and settings
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-settings".
+ */
+export interface SystemSetting {
+  id: string;
+  /**
+   * Unique setting key (e.g., "scan_earning_rate", "min_withdrawal_amount")
+   */
+  key: string;
+  /**
+   * Setting value (can be string, number, boolean, or JSON)
+   */
+  value: string;
+  /**
+   * Data type of the value
+   */
+  type: 'string' | 'number' | 'boolean' | 'json';
+  /**
+   * Setting category for organization
+   */
+  category: 'system' | 'payments' | 'notifications' | 'platform' | 'features';
+  /**
+   * Human-readable description of what this setting controls
+   */
+  description: string;
+  /**
+   * Whether this setting can be edited via UI (system-critical settings should be false)
+   */
+  isEditable?: boolean | null;
+  /**
+   * Whether this setting is visible to non-admin users
+   */
+  isPublic?: boolean | null;
+  validationRules?: {
+    /**
+     * Minimum value (for number types)
+     */
+    min?: number | null;
+    /**
+     * Maximum value (for number types)
+     */
+    max?: number | null;
+    /**
+     * Regex pattern for validation (for string types)
+     */
+    regex?: string | null;
+    /**
+     * Allowed options (comma-separated, for string types)
+     */
+    options?: string | null;
+  };
+  /**
+   * Admin who last updated this setting
+   */
+  updatedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Admin user roles and permissions
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-roles".
+ */
+export interface AdminRole {
+  id: string;
+  /**
+   * Role identifier (e.g., "super_admin", "content_manager")
+   */
+  name: string;
+  /**
+   * Human-readable role name
+   */
+  displayName: string;
+  /**
+   * Role description and responsibilities
+   */
+  description: string;
+  /**
+   * Permissions assigned to this role
+   */
+  permissions: (
+    | 'users.view'
+    | 'users.create'
+    | 'users.edit'
+    | 'users.delete'
+    | 'campaigns.view'
+    | 'campaigns.approve'
+    | 'campaigns.reject'
+    | 'campaigns.pause'
+    | 'campaigns.delete'
+    | 'payments.view'
+    | 'payments.approve'
+    | 'payments.reject'
+    | 'payments.complete'
+    | 'magazines.view'
+    | 'magazines.create'
+    | 'magazines.edit'
+    | 'magazines.delete'
+    | 'magazines.approve_pickups'
+    | 'settings.view'
+    | 'settings.edit'
+    | 'roles.view'
+    | 'roles.create'
+    | 'roles.edit'
+    | 'roles.delete'
+    | 'analytics.view'
+    | 'analytics.export'
+    | 'notifications.send'
+    | 'notifications.templates'
+  )[];
+  /**
+   * System roles cannot be deleted (e.g., Super Admin)
+   */
+  isSystemRole?: boolean | null;
+  /**
+   * Admin who created this role
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * Admin who last updated this role
+   */
+  updatedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Reusable notification templates
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-templates".
+ */
+export interface NotificationTemplate {
+  id: string;
+  /**
+   * Template name for identification
+   */
+  name: string;
+  /**
+   * Unique template code (e.g., "PAYOUT_APPROVED", "CAMPAIGN_REJECTED")
+   */
+  code: string;
+  /**
+   * Notification category
+   */
+  type: 'payment' | 'campaign' | 'magazine' | 'system';
+  /**
+   * Notification title/subject (supports variables like {{name}})
+   */
+  subject: string;
+  /**
+   * Notification message body (supports HTML and variables)
+   */
+  body: string;
+  /**
+   * SMS-specific message (plain text only, 160 chars recommended)
+   */
+  smsText?: string | null;
+  /**
+   * Variables that can be used in subject and body (use {{variable_name}})
+   */
+  variables?:
+    | {
+        /**
+         * Variable name (e.g., "amount", "campaign_name")
+         */
+        name: string;
+        /**
+         * What this variable represents
+         */
+        description?: string | null;
+        /**
+         * Example value
+         */
+        example?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Delivery channels for this notification
+   */
+  channels: ('in_app' | 'email' | 'sms')[];
+  /**
+   * Notification priority level
+   */
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  /**
+   * Whether this template is currently active
+   */
+  isActive?: boolean | null;
+  /**
+   * Admin who created this template
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * Admin who last updated this template
+   */
+  updatedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Payment gateway configuration and credentials
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-gateway-config".
+ */
+export interface PaymentGatewayConfig {
+  id: string;
+  /**
+   * Gateway name for identification (e.g., "Flutterwave Production")
+   */
+  name: string;
+  /**
+   * Payment service provider
+   */
+  provider: 'flutterwave' | 'paystack' | 'paypal' | 'stripe';
+  /**
+   * Enable/disable this gateway for payments
+   */
+  isActive?: boolean | null;
+  /**
+   * Whether this is production or sandbox/test credentials
+   */
+  environment: 'production' | 'sandbox';
+  /**
+   * API Key or Public Key for the gateway
+   */
+  apiKey: string;
+  /**
+   * Secret key for the gateway (will be encrypted)
+   */
+  apiSecret: string;
+  /**
+   * Webhook URL for payment notifications
+   */
+  webhookUrl?: string | null;
+  /**
+   * Secret key for webhook validation (if applicable)
+   */
+  webhookSecret?: string | null;
+  /**
+   * Provider-specific settings (e.g., timeout, retry count)
+   */
+  settings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Currencies supported by this gateway
+   */
+  supportedCurrencies?:
+    | {
+        currency?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Payment methods supported by this gateway
+   */
+  supportedMethods?:
+    | {
+        method?: ('card' | 'bank_transfer' | 'ussd' | 'qr_code' | 'digital_wallet') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Transaction fee percentage (e.g., 2.5 for 2.5%)
+   */
+  transactionFee?: number | null;
+  /**
+   * Minimum transaction amount in base currency unit
+   */
+  minimumAmount?: number | null;
+  /**
+   * Maximum transaction amount in base currency unit
+   */
+  maximumAmount?: number | null;
+  /**
+   * Daily transaction limit (optional)
+   */
+  dailyLimit?: number | null;
+  /**
+   * Additional notes or configuration details
+   */
+  description?: string | null;
+  /**
+   * Last time credentials were tested and validated
+   */
+  lastValidated?: string | null;
+  /**
+   * Status of the last credential validation
+   */
+  validationStatus?: ('not_tested' | 'valid' | 'invalid' | 'error') | null;
+  /**
+   * Error details from last validation attempt
+   */
+  validationError?: string | null;
+  /**
+   * Higher priority gateways are used first (0-100)
+   */
+  priority?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * QR code scan tracking for analytics (no earnings created)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "driver-scans".
+ */
+export interface DriverScan {
+  id: string;
+  /**
+   * Driver who scanned the magazine
+   */
+  driver: string | User;
+  /**
+   * Magazine that was scanned
+   */
+  magazine: string | DriverMagazine;
+  /**
+   * Barcode value (unique identifier)
+   */
+  barcode: string;
+  /**
+   * Timestamp when barcode was scanned
+   */
+  scannedAt: string;
+  /**
+   * IP address of the scanning device (fraud prevention)
+   */
+  ipAddress?: string | null;
+  /**
+   * Device identifier (fraud prevention)
+   */
+  deviceId?: string | null;
+  /**
+   * Status of the scan (valid, duplicate, failed, suspicious)
+   */
+  status: 'valid' | 'duplicate' | 'failed' | 'suspicious';
+  /**
+   * Reason if scan was rejected (duplicate, failed, suspicious)
+   */
+  reason?: string | null;
+  /**
+   * Associated earnings record (if scan was successful)
+   */
+  earnings?: (string | null) | DriverEarning;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "qr-engagements".
+ */
+export interface QrEngagement {
+  id: string;
+  /**
+   * QR code that was scanned
+   */
+  qrCode: string | AdvertiserQrCode;
+  /**
+   * Unique device identifier (from browser fingerprint/localStorage)
+   */
+  deviceId: string;
+  /**
+   * Timestamp when QR code was scanned
+   */
+  scannedAt: string;
+  /**
+   * IP address of the device that scanned
+   */
+  ipAddress?: string | null;
+  /**
+   * Browser/device user agent string
+   */
+  userAgent?: string | null;
+  /**
+   * Geographic location data (optional)
+   */
+  location?: {
+    city?: string | null;
+    region?: string | null;
+    country?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  /**
+   * Unique redemption code generated for this scan
+   */
+  redemptionCode?: string | null;
+  /**
+   * Status of the engagement
+   */
+  status: 'scanned' | 'redeemed' | 'duplicate' | 'failed' | 'expired';
+  /**
+   * When the offer was redeemed
+   */
+  redeemedAt?: string | null;
+  /**
+   * Reason if scan was rejected (duplicate, failed, expired)
+   */
+  reason?: string | null;
+  /**
+   * Additional metadata (device type, referrer, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Magazine barcode if QR code was scanned from a magazine
+   */
+  magazineBarcode?: string | null;
+  /**
+   * Driver whose magazine was scanned (if applicable)
+   */
+  driver?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "magazine-pickup-locations".
+ */
+export interface MagazinePickupLocation {
+  id: string;
+  /**
+   * Location name (e.g., "Lagos HQ", "Abuja Office")
+   */
+  name: string;
+  /**
+   * Full address of the pickup location
+   */
+  address: string;
+  /**
+   * City where the location is situated
+   */
+  city?: string | null;
+  /**
+   * State/Region
+   */
+  state?: string | null;
+  coordinates?: {
+    /**
+     * Latitude coordinate
+     */
+    latitude?: number | null;
+    /**
+     * Longitude coordinate
+     */
+    longitude?: number | null;
+  };
+  /**
+   * Name of the contact person at this location
+   */
+  contactPerson: string;
+  /**
+   * Phone number for the contact person
+   */
+  contactPhone: string;
+  /**
+   * Email address for the contact person
+   */
+  contactEmail?: string | null;
+  /**
+   * Number of magazines currently available at this location
+   */
+  availableQuantity: number;
+  /**
+   * Maximum capacity of magazines this location can hold
+   */
+  capacity?: number | null;
+  /**
+   * Current operational status of the location
+   */
+  status: 'active' | 'inactive' | 'temporarily_closed';
+  operatingHours?: {
+    /**
+     * Monday to Friday operating hours
+     */
+    weekdays?: string | null;
+    /**
+     * Saturday operating hours
+     */
+    saturday?: string | null;
+    /**
+     * Sunday operating hours
+     */
+    sunday?: string | null;
+  };
+  /**
+   * Special instructions for drivers picking up from this location
+   */
+  specialInstructions?: string | null;
+  /**
+   * Current magazine edition available at this location
+   */
+  magazineEdition?: (string | null) | DriverMagazine;
+  /**
+   * Last time the stock quantity was updated
+   */
+  lastStockUpdate?: string | null;
+  /**
+   * Total number of pickups from this location
+   */
+  totalPickups?: number | null;
+  /**
+   * Internal admin notes about this location
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-tickets".
+ */
+export interface SupportTicket {
+  id: string;
+  /**
+   * Auto-generated ticket number
+   */
+  ticketNumber: string;
+  /**
+   * User who submitted the ticket
+   */
+  submittedBy: string | User;
+  /**
+   * Role of the user submitting the ticket
+   */
+  userRole: 'driver' | 'advertiser' | 'admin';
+  /**
+   * Category of the support ticket
+   */
+  category: 'technical' | 'payment' | 'account' | 'campaign' | 'magazine' | 'general' | 'feature_request' | 'other';
+  /**
+   * Brief subject line for the ticket
+   */
+  subject: string;
+  /**
+   * Detailed description of the issue
+   */
+  description: string;
+  /**
+   * Supporting files or screenshots
+   */
+  attachments?:
+    | {
+        file?: (string | null) | Media;
+        fileName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Priority level of the ticket
+   */
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  /**
+   * Current status of the ticket
+   */
+  status: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
+  /**
+   * Admin assigned to handle this ticket
+   */
+  assignedTo?: (string | null) | User;
+  /**
+   * Admin responses and internal notes
+   */
+  responses?:
+    | {
+        respondedBy: string | User;
+        responseText: string;
+        /**
+         * Internal note (not visible to user)
+         */
+        isInternal?: boolean | null;
+        respondedAt: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Timestamp when ticket was resolved
+   */
+  resolvedAt?: string | null;
+  /**
+   * Admin who resolved the ticket
+   */
+  resolvedBy?: (string | null) | User;
+  /**
+   * Notes about the resolution
+   */
+  resolutionNotes?: string | null;
+  /**
+   * Tags for categorization and search
+   */
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-logs".
+ */
+export interface NotificationLog {
+  id: string;
+  /**
+   * Unique identifier for the notification
+   */
+  notificationId: string;
+  /**
+   * Notification delivery channel
+   */
+  channel: 'email' | 'sms' | 'push' | 'in_app';
+  /**
+   * Current delivery status
+   */
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced';
+  /**
+   * When the notification was sent
+   */
+  sentAt?: string | null;
+  /**
+   * When the notification was delivered/confirmed
+   */
+  deliveredAt?: string | null;
+  /**
+   * Reason for delivery failure
+   */
+  failureReason?: string | null;
+  /**
+   * Number of delivery attempts
+   */
+  attempts: number;
+  /**
+   * Additional metadata about the delivery
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-sessions".
+ */
+export interface UserSession {
+  id: string;
+  userId: string | User;
+  sessionToken: string;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  browser?: string | null;
+  os?: string | null;
+  device?: string | null;
+  country?: string | null;
+  city?: string | null;
+  loginTime: string;
+  lastActive: string;
+  logoutTime?: string | null;
+  isActive?: boolean | null;
+  isCurrent?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -994,8 +2552,24 @@ export interface PayloadLockedDocument {
         value: string | DriverRating;
       } | null)
     | ({
+        relationTo: 'btl-coin-awards';
+        value: string | BtlCoinAward;
+      } | null)
+    | ({
         relationTo: 'driver-notifications';
         value: string | DriverNotification;
+      } | null)
+    | ({
+        relationTo: 'driver-notification-preferences';
+        value: string | DriverNotificationPreference;
+      } | null)
+    | ({
+        relationTo: 'advertiser-notifications';
+        value: string | AdvertiserNotification;
+      } | null)
+    | ({
+        relationTo: 'admin-notifications';
+        value: string | AdminNotification;
       } | null)
     | ({
         relationTo: 'driver-magazines';
@@ -1024,6 +2598,58 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'profile-pictures';
         value: string | ProfilePicture;
+      } | null)
+    | ({
+        relationTo: 'bank-details-requests';
+        value: string | BankDetailsRequest;
+      } | null)
+    | ({
+        relationTo: 'magazine-pickups';
+        value: string | MagazinePickup;
+      } | null)
+    | ({
+        relationTo: 'system-settings';
+        value: string | SystemSetting;
+      } | null)
+    | ({
+        relationTo: 'admin-roles';
+        value: string | AdminRole;
+      } | null)
+    | ({
+        relationTo: 'notification-templates';
+        value: string | NotificationTemplate;
+      } | null)
+    | ({
+        relationTo: 'payment-gateway-config';
+        value: string | PaymentGatewayConfig;
+      } | null)
+    | ({
+        relationTo: 'driver-scans';
+        value: string | DriverScan;
+      } | null)
+    | ({
+        relationTo: 'advertiser-qr-codes';
+        value: string | AdvertiserQrCode;
+      } | null)
+    | ({
+        relationTo: 'qr-engagements';
+        value: string | QrEngagement;
+      } | null)
+    | ({
+        relationTo: 'magazine-pickup-locations';
+        value: string | MagazinePickupLocation;
+      } | null)
+    | ({
+        relationTo: 'support-tickets';
+        value: string | SupportTicket;
+      } | null)
+    | ({
+        relationTo: 'notification-logs';
+        value: string | NotificationLog;
+      } | null)
+    | ({
+        relationTo: 'user-sessions';
+        value: string | UserSession;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1085,6 +2711,14 @@ export interface UsersSelect<T extends boolean = true> {
   phoneNumber?: T;
   address?: T;
   references?: T;
+  notificationPreferences?:
+    | T
+    | {
+        email_enabled?: T;
+        sms_enabled?: T;
+        in_app_enabled?: T;
+        notification_types?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1102,6 +2736,11 @@ export interface UsersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
+  usageType?: T;
+  s3Url?: T;
+  s3Key?: T;
+  s3Bucket?: T;
+  prefix?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1174,6 +2813,7 @@ export interface AdCampaignsSelect<T extends boolean = true> {
   campaignName?: T;
   campaignDescription?: T;
   campaignType?: T;
+  magazine?: T;
   budget?: T;
   budgetSpent?: T;
   startDate?: T;
@@ -1185,6 +2825,12 @@ export interface AdCampaignsSelect<T extends boolean = true> {
   reviewedAt?: T;
   rejectionReason?: T;
   notes?: T;
+  enableQRCampaign?: T;
+  qrCode?: T;
+  promoTitle?: T;
+  promoDescription?: T;
+  promoLink?: T;
+  promoTerms?: T;
   pausedAt?: T;
   pauseReason?: T;
   resumedAt?: T;
@@ -1247,8 +2893,14 @@ export interface UserDocumentsSelect<T extends boolean = true> {
   userId?: T;
   documentType?: T;
   documentFile?: T;
+  documentStatus?: T;
   verificationStatus?: T;
+  verifiedAt?: T;
+  verifiedBy?: T;
+  expiresAt?: T;
   rejectionReason?: T;
+  resubmittedAt?: T;
+  adminNotes?: T;
   uploadedAt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1309,6 +2961,7 @@ export interface UserOnboardingSelect<T extends boolean = true> {
   completedAt?: T;
   approvedAt?: T;
   notes?: T;
+  rejectionReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1323,6 +2976,7 @@ export interface DriverEarningsSelect<T extends boolean = true> {
   amount?: T;
   currency?: T;
   type?: T;
+  source?: T;
   status?: T;
   description?: T;
   tripId?: T;
@@ -1362,7 +3016,10 @@ export interface DriverWithdrawalsSelect<T extends boolean = true> {
  */
 export interface DriverRatingsSelect<T extends boolean = true> {
   driver?: T;
-  rater?: T;
+  raterName?: T;
+  raterEmail?: T;
+  raterPhone?: T;
+  deviceFingerprint?: T;
   rating?: T;
   review?: T;
   tripId?: T;
@@ -1370,6 +3027,32 @@ export interface DriverRatingsSelect<T extends boolean = true> {
   isVerified?: T;
   isPublic?: T;
   response?: T;
+  respondedAt?: T;
+  isModerated?: T;
+  moderatedBy?: T;
+  moderationNotes?: T;
+  magazineBarcode?: T;
+  btlCoinAwarded?: T;
+  scanTimestamp?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "btl-coin-awards_select".
+ */
+export interface BtlCoinAwardsSelect<T extends boolean = true> {
+  driver?: T;
+  magazine?: T;
+  magazineBarcode?: T;
+  review?: T;
+  riderDeviceId?: T;
+  riderName?: T;
+  amount?: T;
+  earningRecord?: T;
+  status?: T;
+  awardedAt?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1386,6 +3069,88 @@ export interface DriverNotificationsSelect<T extends boolean = true> {
   actionUrl?: T;
   priority?: T;
   expiresAt?: T;
+  readAt?: T;
+  metadata?: T;
+  payoutId?: T;
+  amount?: T;
+  payoutStatus?: T;
+  earningsAmount?: T;
+  campaignId?: T;
+  magazineName?: T;
+  pickupLocation?: T;
+  dueDate?: T;
+  actionRequired?: T;
+  profileField?: T;
+  documentType?: T;
+  verificationStatus?: T;
+  securityLevel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "driver-notification-preferences_select".
+ */
+export interface DriverNotificationPreferencesSelect<T extends boolean = true> {
+  driver?: T;
+  emailNotifications?: T;
+  smsNotifications?: T;
+  pushNotifications?: T;
+  payoutAlerts?: T;
+  earningsAlerts?: T;
+  magazineAlerts?: T;
+  profileAlerts?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advertiser-notifications_select".
+ */
+export interface AdvertiserNotificationsSelect<T extends boolean = true> {
+  advertiser?: T;
+  type?: T;
+  title?: T;
+  message?: T;
+  isRead?: T;
+  actionUrl?: T;
+  priority?: T;
+  expiresAt?: T;
+  readAt?: T;
+  metadata?: T;
+  campaignId?: T;
+  campaignStatus?: T;
+  creativeId?: T;
+  creativeName?: T;
+  rejectionReason?: T;
+  invoiceId?: T;
+  invoiceNumber?: T;
+  amount?: T;
+  ticketId?: T;
+  ticketNumber?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-notifications_select".
+ */
+export interface AdminNotificationsSelect<T extends boolean = true> {
+  admin?: T;
+  type?: T;
+  title?: T;
+  message?: T;
+  isRead?: T;
+  actionUrl?: T;
+  priority?: T;
+  expiresAt?: T;
+  readAt?: T;
+  metadata?: T;
+  ticketId?: T;
+  ticketNumber?: T;
+  userId?: T;
+  userEmail?: T;
+  requestType?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1408,6 +3173,18 @@ export interface DriverMagazinesSelect<T extends boolean = true> {
         tag?: T;
         id?: T;
       };
+  editionNumber?: T;
+  issueDate?: T;
+  totalCopiesPrinted?: T;
+  status?: T;
+  isActive?: T;
+  barcode?: T;
+  qrImageUrl?: T;
+  barcodeImage?: T;
+  serialNumber?: T;
+  scansCount?: T;
+  isPrinted?: T;
+  printedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1452,16 +3229,15 @@ export interface CampaignPerformanceSelect<T extends boolean = true> {
 export interface CampaignMediaSelect<T extends boolean = true> {
   campaignId?: T;
   businessId?: T;
-  fileName?: T;
-  fileType?: T;
-  fileUrl?: T;
-  fileSize?: T;
+  mediaFile?: T;
   description?: T;
   uploadStatus?: T;
+  approvalStatus?: T;
   isApproved?: T;
   approvedBy?: T;
   approvedAt?: T;
   rejectionReason?: T;
+  adminNotes?: T;
   uploadedAt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1544,6 +3320,7 @@ export interface ProfilePicturesSelect<T extends boolean = true> {
   isActive?: T;
   uploadedBy?: T;
   fileSize?: T;
+  prefix?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1589,6 +3366,365 @@ export interface ProfilePicturesSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-details-requests_select".
+ */
+export interface BankDetailsRequestsSelect<T extends boolean = true> {
+  driver?: T;
+  oldBankDetails?:
+    | T
+    | {
+        bankName?: T;
+        accountNumber?: T;
+        accountName?: T;
+      };
+  newBankDetails?:
+    | T
+    | {
+        bankName?: T;
+        accountNumber?: T;
+        accountName?: T;
+      };
+  reason?: T;
+  status?: T;
+  adminNotes?: T;
+  rejectionReason?: T;
+  verificationStatus?: T;
+  verificationNotes?: T;
+  requestedAt?: T;
+  processedAt?: T;
+  processedBy?: T;
+  notificationSent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "magazine-pickups_select".
+ */
+export interface MagazinePickupsSelect<T extends boolean = true> {
+  driver?: T;
+  magazine?: T;
+  quantity?: T;
+  location?:
+    | T
+    | {
+        name?: T;
+        address?: T;
+        contactPerson?: T;
+        contactPhone?: T;
+      };
+  pickupDate?: T;
+  returnDate?: T;
+  actualReturnDate?: T;
+  status?: T;
+  qrCode?: T;
+  notes?: T;
+  adminNotes?: T;
+  rejectionReason?: T;
+  requestedAt?: T;
+  approvedAt?: T;
+  approvedBy?: T;
+  pickedUpAt?: T;
+  activatedAt?: T;
+  activationBarcode?: T;
+  verificationCode?: T;
+  earningSynced?: T;
+  riderScans?: T;
+  btlCoinsEarned?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-settings_select".
+ */
+export interface SystemSettingsSelect<T extends boolean = true> {
+  key?: T;
+  value?: T;
+  type?: T;
+  category?: T;
+  description?: T;
+  isEditable?: T;
+  isPublic?: T;
+  validationRules?:
+    | T
+    | {
+        min?: T;
+        max?: T;
+        regex?: T;
+        options?: T;
+      };
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-roles_select".
+ */
+export interface AdminRolesSelect<T extends boolean = true> {
+  name?: T;
+  displayName?: T;
+  description?: T;
+  permissions?: T;
+  isSystemRole?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-templates_select".
+ */
+export interface NotificationTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  code?: T;
+  type?: T;
+  subject?: T;
+  body?: T;
+  smsText?: T;
+  variables?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        example?: T;
+        id?: T;
+      };
+  channels?: T;
+  priority?: T;
+  isActive?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-gateway-config_select".
+ */
+export interface PaymentGatewayConfigSelect<T extends boolean = true> {
+  name?: T;
+  provider?: T;
+  isActive?: T;
+  environment?: T;
+  apiKey?: T;
+  apiSecret?: T;
+  webhookUrl?: T;
+  webhookSecret?: T;
+  settings?: T;
+  supportedCurrencies?:
+    | T
+    | {
+        currency?: T;
+        id?: T;
+      };
+  supportedMethods?:
+    | T
+    | {
+        method?: T;
+        id?: T;
+      };
+  transactionFee?: T;
+  minimumAmount?: T;
+  maximumAmount?: T;
+  dailyLimit?: T;
+  description?: T;
+  lastValidated?: T;
+  validationStatus?: T;
+  validationError?: T;
+  priority?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "driver-scans_select".
+ */
+export interface DriverScansSelect<T extends boolean = true> {
+  driver?: T;
+  magazine?: T;
+  barcode?: T;
+  scannedAt?: T;
+  ipAddress?: T;
+  deviceId?: T;
+  status?: T;
+  reason?: T;
+  earnings?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advertiser-qr-codes_select".
+ */
+export interface AdvertiserQrCodesSelect<T extends boolean = true> {
+  campaign?: T;
+  qrCode?: T;
+  qrImageUrl?: T;
+  qrImageData?: T;
+  promoTitle?: T;
+  promoDescription?: T;
+  promoLink?: T;
+  promoTerms?: T;
+  expiresAt?: T;
+  scansCount?: T;
+  uniqueScansCount?: T;
+  redemptionsCount?: T;
+  status?: T;
+  maxScans?: T;
+  conversionRate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "qr-engagements_select".
+ */
+export interface QrEngagementsSelect<T extends boolean = true> {
+  qrCode?: T;
+  deviceId?: T;
+  scannedAt?: T;
+  ipAddress?: T;
+  userAgent?: T;
+  location?:
+    | T
+    | {
+        city?: T;
+        region?: T;
+        country?: T;
+        latitude?: T;
+        longitude?: T;
+      };
+  redemptionCode?: T;
+  status?: T;
+  redeemedAt?: T;
+  reason?: T;
+  metadata?: T;
+  magazineBarcode?: T;
+  driver?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "magazine-pickup-locations_select".
+ */
+export interface MagazinePickupLocationsSelect<T extends boolean = true> {
+  name?: T;
+  address?: T;
+  city?: T;
+  state?: T;
+  coordinates?:
+    | T
+    | {
+        latitude?: T;
+        longitude?: T;
+      };
+  contactPerson?: T;
+  contactPhone?: T;
+  contactEmail?: T;
+  availableQuantity?: T;
+  capacity?: T;
+  status?: T;
+  operatingHours?:
+    | T
+    | {
+        weekdays?: T;
+        saturday?: T;
+        sunday?: T;
+      };
+  specialInstructions?: T;
+  magazineEdition?: T;
+  lastStockUpdate?: T;
+  totalPickups?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-tickets_select".
+ */
+export interface SupportTicketsSelect<T extends boolean = true> {
+  ticketNumber?: T;
+  submittedBy?: T;
+  userRole?: T;
+  category?: T;
+  subject?: T;
+  description?: T;
+  attachments?:
+    | T
+    | {
+        file?: T;
+        fileName?: T;
+        id?: T;
+      };
+  priority?: T;
+  status?: T;
+  assignedTo?: T;
+  responses?:
+    | T
+    | {
+        respondedBy?: T;
+        responseText?: T;
+        isInternal?: T;
+        respondedAt?: T;
+        id?: T;
+      };
+  resolvedAt?: T;
+  resolvedBy?: T;
+  resolutionNotes?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-logs_select".
+ */
+export interface NotificationLogsSelect<T extends boolean = true> {
+  notificationId?: T;
+  channel?: T;
+  status?: T;
+  sentAt?: T;
+  deliveredAt?: T;
+  failureReason?: T;
+  attempts?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-sessions_select".
+ */
+export interface UserSessionsSelect<T extends boolean = true> {
+  userId?: T;
+  sessionToken?: T;
+  userAgent?: T;
+  ipAddress?: T;
+  browser?: T;
+  os?: T;
+  device?: T;
+  country?: T;
+  city?: T;
+  loginTime?: T;
+  lastActive?: T;
+  logoutTime?: T;
+  isActive?: T;
+  isCurrent?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

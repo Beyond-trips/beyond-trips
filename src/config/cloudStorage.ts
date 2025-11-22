@@ -1,6 +1,6 @@
 // config/cloudStorage.ts
 import AWS from 'aws-sdk'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 
 // AWS S3 Configuration
 const s3 = new AWS.S3({
@@ -48,7 +48,7 @@ export class CloudStorageService {
     mimeType: string,
     folder: string = 'media'
   ): Promise<MediaUploadResult> {
-    const key = `${folder}/${uuidv4()}-${filename}`
+    const key = `${folder}/${randomUUID()}-${filename}`
     
     const params = {
       Bucket: this.config.bucket,
@@ -226,6 +226,22 @@ export const storageConfigs = {
     region: process.env.AWS_REGION || 'us-east-1',
     cdnDomain: process.env.AWS_CLOUDFRONT_DOMAIN_ANALYTICS,
     storageClass: 'GLACIER' as const // Glacier for long-term archival
+  },
+  
+  // QR codes - generated QR code images
+  qrCodes: {
+    bucket: process.env.AWS_S3_BUCKET_QR_CODES || 'beyond-trips-qr-codes',
+    region: process.env.AWS_REGION || 'us-east-1',
+    cdnDomain: process.env.AWS_CLOUDFRONT_DOMAIN_QR_CODES,
+    storageClass: 'STANDARD' as const
+  },
+  
+  // General media - miscellaneous uploads
+  generalMedia: {
+    bucket: process.env.AWS_S3_BUCKET_GENERAL_MEDIA || 'beyond-trips-general-media',
+    region: process.env.AWS_REGION || 'us-east-1',
+    cdnDomain: process.env.AWS_CLOUDFRONT_DOMAIN_GENERAL_MEDIA,
+    storageClass: 'STANDARD' as const
   }
 }
 
@@ -234,3 +250,5 @@ export const profilePictureStorage = new CloudStorageService(storageConfigs.prof
 export const campaignMediaStorage = new CloudStorageService(storageConfigs.campaignMedia)
 export const userDocumentStorage = new CloudStorageService(storageConfigs.userDocuments)
 export const analyticsStorage = new CloudStorageService(storageConfigs.analyticsData)
+export const qrCodeStorage = new CloudStorageService(storageConfigs.qrCodes)
+export const generalMediaStorage = new CloudStorageService(storageConfigs.generalMedia)

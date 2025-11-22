@@ -8,12 +8,22 @@ import {
   getAdvertiserProfile,
   getCampaigns,
   createCampaign,
+  updateCampaign,
+  deleteCampaign,
+  duplicateCampaign,
+  getInvoices,
+  getInvoiceDetails,
+  createInvoice,
   getAnalytics,
   getAdSpendData,
   generateReport,
   addAnalyticsData,
   uploadCampaignMediaFile,
-  uploadProfilePicture
+  uploadProfilePicture,
+  makePayment,
+  cancelInvoice,
+  getAdvertiserCreatives,
+  getCreativeStatus
 } from '../../../endpoints/advertiserDashboardEndpoints'
 import { 
   uploadProfilePictureV2,
@@ -66,10 +76,49 @@ export async function GET(req: NextRequest) {
           if (decoded.role === 'partner' && decoded.partnerId) {
             console.log('🔍 Looking up business details for partnerId:', decoded.partnerId)
             // Find the business details for this partner
-            const businessDetails = await payload.findByID({
-              collection: 'business-details',
-              id: decoded.partnerId
-            })
+            let businessDetails: any = null
+            
+            // Check if partnerId is a valid ID (UUID/MongoID format) or email
+            const isEmail = decoded.partnerId.includes('@')
+            
+            if (isEmail) {
+              // If partnerId is an email, look up by email
+              const businesses = await payload.find({
+                collection: 'business-details',
+                where: {
+                  companyEmail: {
+                    equals: decoded.partnerId
+                  }
+                },
+                limit: 1
+              })
+              if (businesses.docs.length > 0) {
+                businessDetails = businesses.docs[0]
+              }
+            } else {
+              // Try to find by ID first
+              try {
+                businessDetails = await payload.findByID({
+                  collection: 'business-details',
+                  id: decoded.partnerId
+                })
+              } catch (error) {
+                // If findByID fails, try to find by email as fallback
+                const businesses = await payload.find({
+                  collection: 'business-details',
+                  where: {
+                    companyEmail: {
+                      equals: decoded.email || decoded.partnerId
+                    }
+                  },
+                  limit: 1
+                })
+                if (businesses.docs.length > 0) {
+                  businessDetails = businesses.docs[0]
+                }
+              }
+            }
+            
             console.log('🔍 Business details found:', !!businessDetails)
             
             if (businessDetails) {
@@ -77,11 +126,8 @@ export async function GET(req: NextRequest) {
               user = {
                 id: businessDetails.id,
                 email: businessDetails.companyEmail,
-                role: 'partner',
-                partnerId: businessDetails.id,
-                companyName: businessDetails.companyName,
-                companyEmail: businessDetails.companyEmail
-              }
+                role: decoded.role, // Use role from JWT token ('partner')
+              } as any // Allow additional partner-specific properties
               console.log('🔍 Created mock user:', user)
             }
           }
@@ -150,6 +196,18 @@ export async function GET(req: NextRequest) {
       case 'get-profile':
         return await getProfile(payloadRequest)
       
+      case 'invoices':
+        return await getInvoices(payloadRequest)
+      
+      case 'invoice-details':
+        return await getInvoiceDetails(payloadRequest)
+      
+      case 'creatives':
+        return await getAdvertiserCreatives(payloadRequest)
+      
+      case 'creative-status':
+        return await getCreativeStatus(payloadRequest)
+      
       default:
         return new Response(JSON.stringify({
           error: 'Invalid action parameter'
@@ -194,10 +252,49 @@ export async function POST(req: NextRequest) {
           if (decoded.role === 'partner' && decoded.partnerId) {
             console.log('🔍 Looking up business details for partnerId:', decoded.partnerId)
             // Find the business details for this partner
-            const businessDetails = await payload.findByID({
-              collection: 'business-details',
-              id: decoded.partnerId
-            })
+            let businessDetails: any = null
+            
+            // Check if partnerId is a valid ID (UUID/MongoID format) or email
+            const isEmail = decoded.partnerId.includes('@')
+            
+            if (isEmail) {
+              // If partnerId is an email, look up by email
+              const businesses = await payload.find({
+                collection: 'business-details',
+                where: {
+                  companyEmail: {
+                    equals: decoded.partnerId
+                  }
+                },
+                limit: 1
+              })
+              if (businesses.docs.length > 0) {
+                businessDetails = businesses.docs[0]
+              }
+            } else {
+              // Try to find by ID first
+              try {
+                businessDetails = await payload.findByID({
+                  collection: 'business-details',
+                  id: decoded.partnerId
+                })
+              } catch (error) {
+                // If findByID fails, try to find by email as fallback
+                const businesses = await payload.find({
+                  collection: 'business-details',
+                  where: {
+                    companyEmail: {
+                      equals: decoded.email || decoded.partnerId
+                    }
+                  },
+                  limit: 1
+                })
+                if (businesses.docs.length > 0) {
+                  businessDetails = businesses.docs[0]
+                }
+              }
+            }
+            
             console.log('🔍 Business details found:', !!businessDetails)
             
             if (businessDetails) {
@@ -205,11 +302,8 @@ export async function POST(req: NextRequest) {
               user = {
                 id: businessDetails.id,
                 email: businessDetails.companyEmail,
-                role: 'partner',
-                partnerId: businessDetails.id,
-                companyName: businessDetails.companyName,
-                companyEmail: businessDetails.companyEmail
-              }
+                role: decoded.role, // Use role from JWT token ('partner')
+              } as any // Allow additional partner-specific properties
               console.log('🔍 Created mock user:', user)
             }
           }
@@ -242,6 +336,15 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'create-campaign':
         return await createCampaign(payloadRequest)
+      
+      case 'update-campaign':
+        return await updateCampaign(payloadRequest)
+      
+      case 'duplicate-campaign':
+        return await duplicateCampaign(payloadRequest)
+      
+      case 'create-invoice':
+        return await createInvoice(payloadRequest)
       
       case 'generate-report':
         return await generateReport(payloadRequest)
@@ -288,6 +391,12 @@ export async function POST(req: NextRequest) {
       case 'delete-profile-picture-v3':
         return await deleteProfilePictureV3(payloadRequest)
       
+      case 'make-payment':
+        return await makePayment(payloadRequest)
+      
+      case 'cancel-invoice':
+        return await cancelInvoice(payloadRequest)
+      
       default:
         return new Response(JSON.stringify({
           error: 'Invalid action parameter'
@@ -298,6 +407,88 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('❌ Advertiser dashboard POST error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const payload = await getPayload({ config })
+    const { searchParams } = new URL(req.url)
+    const action = searchParams.get('action')
+
+    // Try Payload CMS authentication first
+    let authResult = await payload.auth({ headers: req.headers })
+    let user = authResult.user
+
+    // If Payload auth fails, try partner JWT authentication
+    if (!user) {
+      const authHeader = req.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('JWT ')) {
+        const token = authHeader.substring(4)
+        try {
+          const jwt = require('jsonwebtoken')
+          const decoded = jwt.verify(token, '096fcad00254ab7e247c1a34cbfa901d5a5b0b32e86e7144afbfd113cecd7a7b97b0040163132e732e87c9dc1efc09549b0db84d9aa86045a7b63d94b969cfc3')
+          
+          if (decoded.role === 'partner' && decoded.partnerId) {
+            const businessDetails = await payload.findByID({
+              collection: 'business-details',
+              id: decoded.partnerId
+            })
+            
+            if (businessDetails) {
+              user = {
+                id: businessDetails.id,
+                email: businessDetails.companyEmail,
+                role: 'user' as any, // Partner role treated as user
+              } as any // Allow additional partner-specific properties
+            }
+          }
+        } catch (error) {
+          console.error('Partner JWT verification failed:', error)
+        }
+      }
+    }
+
+    if (!user) {
+      return new Response(JSON.stringify({
+        error: 'Unauthorized - Please log in'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Parse request body
+    const body = await req.json()
+
+    const payloadRequest: any = {
+      user: user,
+      payload,
+      url: req.url,
+      body,
+      headers: req.headers,
+    }
+
+    switch (action) {
+      case 'delete-campaign':
+        return await deleteCampaign(payloadRequest)
+      
+      default:
+        return new Response(JSON.stringify({
+          error: 'Invalid action parameter'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+    }
+  } catch (error) {
+    console.error('❌ Advertiser dashboard DELETE error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error'
     }), {

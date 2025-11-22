@@ -118,20 +118,23 @@ export async function POST(
     }
   }
   
+  // Parse body once and reuse it
+  let parsedBody = {}
+  try {
+    const clonedReq = req.clone() // Clone request to avoid consuming the original
+    const text = await clonedReq.text()
+    parsedBody = text ? JSON.parse(text) : {}
+  } catch (error) {
+    console.error('Error parsing JSON:', error)
+    parsedBody = {}
+  }
+
   // Create the request object that onboarding functions expect
   const payloadRequest = {
     payload,
     headers: req.headers,
-    json: async () => {
-      try {
-        const text = await req.text()
-        return text ? JSON.parse(text) : {}
-      } catch (error) {
-        console.error('Error parsing JSON:', error)
-        return {}
-      }
-    },
-    body: req.body,
+    json: async () => parsedBody, // Return already parsed body
+    body: parsedBody, // Use parsed body instead of ReadableStream
     url: req.url,
     method: req.method,
     user: user, // Now properly populated using Payload's auth

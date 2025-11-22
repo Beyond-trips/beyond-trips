@@ -4,7 +4,10 @@ import config from '@payload-config'
 import {
   getAllWithdrawals,
   updateWithdrawalStatus,
-  getWithdrawalStats
+  getWithdrawalStats,
+  approveWithdrawal,
+  rejectWithdrawal,
+  completeWithdrawal
 } from '../../../../endpoints/adminWithdrawalEndpoints'
 
 export async function GET(req: NextRequest) {
@@ -125,6 +128,15 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'update-status':
         return await updateWithdrawalStatus(payloadRequest)
+      
+      case 'approve':
+        return await approveWithdrawal(payloadRequest)
+      
+      case 'reject':
+        return await rejectWithdrawal(payloadRequest)
+      
+      case 'complete':
+        return await completeWithdrawal(payloadRequest)
       
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {

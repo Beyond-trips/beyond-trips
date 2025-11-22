@@ -13,8 +13,21 @@ import {
   requestWithdrawal,
   getWithdrawalHistory,
   getDriverProfile,
-  updateDriverProfile
+  updateDriverProfile,
+  requestBankDetailsUpdate,
+  getBankDetailsRequests,
+  requestMagazinePickup,
+  getMagazinePickups,
+  confirmMagazineReturn,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  changePassword,
+  scanMagazineBarcode,
+  searchDriverEarnings,
+  exportDriverEarnings
 } from '../../../endpoints/driverDashboardEndpoints'
+import { markNotificationsAsRead } from '../../../endpoints/driverNotificationEndpoints'
+import { activateMagazine } from '../../../endpoints/driverMagazineActivationEndpoints'
 
 export async function GET(req: NextRequest) {
   try {
@@ -93,6 +106,21 @@ export async function GET(req: NextRequest) {
       case 'withdrawals':
         return await getWithdrawalHistory(payloadRequest as any)
       
+      case 'bank-details-requests':
+        return await getBankDetailsRequests(payloadRequest as any)
+      
+      case 'magazine-pickups':
+        return await getMagazinePickups(payloadRequest as any)
+      
+      case 'notification-preferences':
+        return await getNotificationPreferences(payloadRequest as any)
+      
+      case 'search-earnings':
+        return await searchDriverEarnings(payloadRequest as any)
+      
+      case 'export-earnings':
+        return await exportDriverEarnings(payloadRequest as any)
+      
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
           status: 400,
@@ -145,8 +173,29 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Parse request body
-    const body = await req.json()
+    // Handle mark-all-read separately (no body needed)
+    if (action === 'mark-all-read') {
+      const payloadRequest = {
+        payload,
+        headers: req.headers,
+        url: req.url,
+        method: req.method,
+        user,
+        body: { markAll: true },
+        json: async () => ({ markAll: true })
+      } as any
+      return await markNotificationsAsRead(payloadRequest)
+    }
+
+    // Parse request body for other actions
+    let body = {}
+    try {
+      const text = await req.text()
+      body = text ? JSON.parse(text) : {}
+    } catch (error) {
+      // If body is empty or invalid, use empty object
+      body = {}
+    }
 
     // Create payload request with authenticated user (matching working user onboarding pattern)
     const payloadRequest = {
@@ -159,6 +208,7 @@ export async function POST(req: NextRequest) {
     } as any
 
     switch (action) {
+      
       case 'mark-notification-read':
         return await markNotificationAsRead(payloadRequest)
       
@@ -173,6 +223,27 @@ export async function POST(req: NextRequest) {
       
       case 'request-withdrawal':
         return await requestWithdrawal(payloadRequest as any)
+      
+      case 'request-bank-update':
+        return await requestBankDetailsUpdate(payloadRequest as any)
+      
+      case 'request-magazine-pickup':
+        return await requestMagazinePickup(payloadRequest as any)
+      
+      case 'confirm-magazine-return':
+        return await confirmMagazineReturn(payloadRequest as any)
+      
+      case 'update-notification-preferences':
+        return await updateNotificationPreferences(payloadRequest as any)
+      
+      case 'change-password':
+        return await changePassword(payloadRequest as any)
+      
+      case 'scan-magazine-barcode':
+        return await scanMagazineBarcode(payloadRequest as any)
+      
+      case 'activate-magazine':
+        return await activateMagazine(payloadRequest as any)
       
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {

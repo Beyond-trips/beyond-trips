@@ -1,5 +1,6 @@
 // endpoints/campaignStatusEndpoints.ts
 import type { PayloadRequest } from 'payload'
+import { sendCampaignNotification } from '../services/notifications/advertiserNotifications'
 
 // Helper function to parse request body
 const parseRequestBody = async (req: PayloadRequest): Promise<any> => {
@@ -202,6 +203,20 @@ export const pauseCampaign = async (req: PayloadRequest): Promise<Response> => {
       } as any
     })
 
+    // Send notification to advertiser
+    try {
+      await sendCampaignNotification(
+        req.payload,
+        businessId,
+        'paused',
+        campaignId,
+        (campaign as any).name || 'Campaign',
+        reason
+      )
+    } catch (notifError) {
+      console.warn('⚠️ Failed to send campaign pause notification:', notifError)
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Campaign paused successfully',
@@ -324,6 +339,20 @@ export const resumeCampaign = async (req: PayloadRequest): Promise<Response> => 
         }
       } as any
     })
+
+    // Send notification to advertiser
+    try {
+      await sendCampaignNotification(
+        req.payload,
+        businessId,
+        'active',
+        campaignId,
+        (campaign as any).name || 'Campaign',
+        reason
+      )
+    } catch (notifError) {
+      console.warn('⚠️ Failed to send campaign activation notification:', notifError)
+    }
 
     return new Response(JSON.stringify({
       success: true,

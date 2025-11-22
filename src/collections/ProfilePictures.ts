@@ -1,11 +1,5 @@
 // collections/ProfilePictures.ts
 import type { CollectionConfig } from 'payload'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-// Add these lines to define dirname
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
 
 export const ProfilePictures: CollectionConfig = {
   slug: 'profile-pictures',
@@ -23,7 +17,8 @@ export const ProfilePictures: CollectionConfig = {
     delete: ({ req: { user } }) => !!user,
   },
   upload: {
-    staticDir: path.resolve(dirname, '../../media/profile-pictures'),
+    // Files now upload directly to S3 via @payloadcms/storage-s3 plugin
+    // Configuration is in payload.config.ts
     mimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
     adminThumbnail: 'thumbnail',
     imageSizes: [

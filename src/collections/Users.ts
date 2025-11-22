@@ -31,7 +31,7 @@ export const Users: CollectionConfig = {
       name: 'role',
       type: 'select',
       options: ['admin', 'user'      ],
-      defaultValue: { value: 'user' },
+      defaultValue: 'user',
       required: true,
     },
     {
@@ -117,6 +117,70 @@ export const Users: CollectionConfig = {
       admin: {
         description: 'who referred user',
       },
+    },
+    
+    // Notification Preferences
+    {
+      name: 'notificationPreferences',
+      type: 'group',
+      label: 'Notification Preferences',
+      fields: [
+        {
+          name: 'email_enabled',
+          type: 'checkbox',
+          label: 'Email Notifications',
+          defaultValue: true,
+          admin: {
+            description: 'Receive notifications via email',
+          },
+        },
+        {
+          name: 'sms_enabled',
+          type: 'checkbox',
+          label: 'SMS Notifications',
+          defaultValue: false,
+          admin: {
+            description: 'Receive notifications via SMS',
+          },
+        },
+        {
+          name: 'in_app_enabled',
+          type: 'checkbox',
+          label: 'In-App Notifications',
+          defaultValue: true,
+          admin: {
+            description: 'Receive in-app notifications',
+          },
+        },
+        {
+          name: 'notification_types',
+          type: 'select',
+          label: 'Notification Types',
+          hasMany: true,
+          defaultValue: ['payment', 'campaign', 'magazine', 'system'],
+          options: [
+            {
+              label: 'Payment Notifications',
+              value: 'payment',
+            },
+            {
+              label: 'Campaign Notifications',
+              value: 'campaign',
+            },
+            {
+              label: 'Magazine Notifications',
+              value: 'magazine',
+            },
+            {
+              label: 'System Notifications',
+              value: 'system',
+            },
+          ],
+          admin: {
+            description: 'Types of notifications to receive',
+          },
+        },
+      ],
     },
   ],
 }

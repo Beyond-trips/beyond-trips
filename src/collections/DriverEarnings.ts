@@ -1,9 +1,25 @@
 import type { CollectionConfig } from 'payload'
 
+/**
+ * DriverEarnings Collection
+ * 
+ * Tracks all driver earnings including:
+ * - BTL coins (from rider interactions) - PRIMARY AUTOMATIC REWARD
+ * - Admin bonuses (referrals, incentives, manual bonuses)
+ * - Historical scan earnings (kept for audit purposes)
+ * 
+ * NOTE: QR code scans no longer create earnings automatically.
+ * New earnings are only created from:
+ * 1. BTL coins when riders submit reviews (₦500 per review)
+ * 2. Admin manual bonuses/referrals/incentives
+ * 
+ * Historical earnings with source 'scan' remain in database.
+ */
 export const DriverEarnings: CollectionConfig = {
   slug: 'driver-earnings',
   admin: {
     useAsTitle: 'id',
+    description: 'Driver earnings from BTL coins and admin bonuses',
   },
   access: {
     create: ({ req: { user } }) => {
@@ -70,33 +86,50 @@ export const DriverEarnings: CollectionConfig = {
         { label: 'GBP', value: 'GBP' },
         { label: 'NGN', value: 'NGN' }
       ],
-      defaultValue: { value: 'NGN' },
+      defaultValue: 'NGN',
       required: true,
     },
     {
       name: 'type',
       type: 'select',
       options: [
-        { label: 'Scan Payment', value: 'scan_payment' },
+        { label: 'Scan Payment (Deprecated)', value: 'scan_payment' }, // Kept for historical data only
         { label: 'Trip Payment', value: 'trip_payment' },
         { label: 'Bonus', value: 'bonus' },
         { label: 'Referral', value: 'referral' },
         { label: 'Incentive', value: 'incentive' },
         { label: 'Other', value: 'other' }
       ],
-      defaultValue: { value: 'scan_payment' },
+      defaultValue: 'bonus', // Changed from scan_payment since scans no longer create earnings
       required: true,
+      admin: {
+        description: 'Type of earnings (scan_payment is deprecated - no longer created)',
+      },
+    },
+    {
+      name: 'source',
+      type: 'select',
+      options: [
+        { label: 'Magazine Scan (Deprecated)', value: 'scan' }, // Kept for historical data only
+        { label: 'BTL Coin Reward', value: 'btl_coin' }, // Primary automatic reward
+        { label: 'Trip', value: 'trip' },
+        { label: 'Other', value: 'other' }
+      ],
+      defaultValue: 'btl_coin', // Changed from scan - BTL coins are now primary reward
+      admin: {
+        description: 'Source of the earnings (BTL coin = primary, scan = deprecated/historical only)',
+      },
     },
     {
       name: 'status',
       type: 'select',
       options: [
-        { label: 'Pending', value: 'pending' },
-        { label: 'Paid', value: 'paid' },
+        { label: 'Active', value: 'active' },
+        { label: 'Archived', value: 'archived' },
         { label: 'Failed', value: 'failed' },
         { label: 'Cancelled', value: 'cancelled' }
       ],
-      defaultValue: { value: 'pending' },
+      defaultValue: 'active',
       required: true,
     },
     {

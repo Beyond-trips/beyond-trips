@@ -6,16 +6,14 @@ export const DriverRatings: CollectionConfig = {
     useAsTitle: 'id',
   },
   access: {
-    create: ({ req: { user } }) => {
-      if (user) return true
-      return false
-    },
+    create: () => true, // Allow public (unauthenticated) submissions
     read: ({ req: { user } }) => {
-      if (user) return true
-      return false
+      if (user) return true // Authenticated users can read
+      return true // Public can also read ratings
     },
     update: ({ req: { user } }) => {
       if (user?.role === 'admin') return true
+      if (user?.role === 'driver') return true // Drivers can respond to reviews
       return false
     },
     delete: ({ req: { user } }) => {
@@ -34,12 +32,31 @@ export const DriverRatings: CollectionConfig = {
       },
     },
     {
-      name: 'rater',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
+      name: 'raterName',
+      type: 'text',
       admin: {
-        description: 'User who gave the rating',
+        description: 'Name of the person who gave the rating (for unauthenticated riders)',
+      },
+    },
+    {
+      name: 'raterEmail',
+      type: 'email',
+      admin: {
+        description: 'Email of the person who gave the rating (optional)',
+      },
+    },
+    {
+      name: 'raterPhone',
+      type: 'text',
+      admin: {
+        description: 'Phone number of the rider (optional, for verification)',
+      },
+    },
+    {
+      name: 'deviceFingerprint',
+      type: 'text',
+      admin: {
+        description: 'Device fingerprint to prevent duplicate ratings from same device',
       },
     },
     {
@@ -101,6 +118,58 @@ export const DriverRatings: CollectionConfig = {
       type: 'textarea',
       admin: {
         description: 'Driver response to the rating',
+      },
+    },
+    {
+      name: 'respondedAt',
+      type: 'date',
+      admin: {
+        description: 'When the driver responded',
+      },
+    },
+    {
+      name: 'isModerated',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Whether this rating has been reviewed by admin',
+      },
+    },
+    {
+      name: 'moderatedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: {
+        description: 'Admin who moderated this rating',
+      },
+    },
+    {
+      name: 'moderationNotes',
+      type: 'textarea',
+      admin: {
+        description: 'Admin notes on moderation',
+      },
+    },
+    {
+      name: 'magazineBarcode',
+      type: 'text',
+      admin: {
+        description: 'Magazine barcode scanned by rider (links review to BTL coin system)',
+      },
+    },
+    {
+      name: 'btlCoinAwarded',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Whether a BTL coin was awarded for this review',
+      },
+    },
+    {
+      name: 'scanTimestamp',
+      type: 'date',
+      admin: {
+        description: 'When the rider scanned the magazine barcode',
       },
     },
   ],

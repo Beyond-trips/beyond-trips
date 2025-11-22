@@ -48,7 +48,7 @@ export const DriverWithdrawals: CollectionConfig = {
       options: [
         { label: 'NGN', value: 'NGN' }
       ],
-      defaultValue: { value: 'NGN' },
+      defaultValue: 'NGN',
       required: true,
     },
     {
@@ -61,7 +61,7 @@ export const DriverWithdrawals: CollectionConfig = {
         { label: 'Processing', value: 'processing' },
         { label: 'Completed', value: 'completed' }
       ],
-      defaultValue: { value: 'pending' },
+      defaultValue: 'pending',
       required: true,
     },
     {

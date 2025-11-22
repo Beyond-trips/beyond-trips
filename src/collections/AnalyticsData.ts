@@ -96,7 +96,7 @@ export const AnalyticsData: CollectionConfig = {
         { label: 'US Dollar', value: 'USD' },
         { label: 'Euro', value: 'EUR' },
       ],
-      defaultValue: { value: 'NGN' },
+      defaultValue: 'NGN',
       required: true,
     },
     {
@@ -109,7 +109,7 @@ export const AnalyticsData: CollectionConfig = {
         { label: 'Social Media', value: 'social_media' },
         { label: 'Email', value: 'email' },
       ],
-      defaultValue: { value: 'magazine' },
+      defaultValue: 'magazine',
     },
     {
       name: 'deviceType',
@@ -120,7 +120,7 @@ export const AnalyticsData: CollectionConfig = {
         { label: 'Tablet', value: 'tablet' },
         { label: 'All', value: 'all' },
       ],
-      defaultValue: { value: 'all' },
+      defaultValue: 'all',
     },
     {
       name: 'location',
@@ -140,7 +140,7 @@ export const AnalyticsData: CollectionConfig = {
         { label: '55+', value: '55+' },
         { label: 'All', value: 'all' },
       ],
-      defaultValue: { value: 'all' },
+      defaultValue: 'all',
     },
     {
       name: 'gender',
@@ -151,7 +151,7 @@ export const AnalyticsData: CollectionConfig = {
         { label: 'Other', value: 'other' },
         { label: 'All', value: 'all' },
       ],
-      defaultValue: { value: 'all' },
+      defaultValue: 'all',
     },
     {
       name: 'isActive',

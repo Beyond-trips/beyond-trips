@@ -23,7 +23,7 @@ export const UserOnboarding: CollectionConfig = {
         { label: 'Training & Compliance', value: 'training' },
         { label: 'Confirmation & Dashboard Access', value: 'completed' },
       ],
-      defaultValue: { value: 'basic_details' },
+      defaultValue: 'basic_details',
     },
     {
       name: 'stepsCompleted',
@@ -57,7 +57,7 @@ export const UserOnboarding: CollectionConfig = {
         { label: 'Rejected', value: 'rejected' },
         { label: 'Completed', value: 'completed' },
       ],
-      defaultValue: { value: 'in_progress' },
+      defaultValue: 'in_progress',
     },
     {
       name: 'startedAt',
@@ -77,6 +77,13 @@ export const UserOnboarding: CollectionConfig = {
       type: 'textarea',
       admin: {
         description: 'Internal notes for admin review',
+      },
+    },
+    {
+      name: 'rejectionReason',
+      type: 'textarea',
+      admin: {
+        description: 'Reason for registration rejection (shown to driver)',
       },
     },
   ],

@@ -3,7 +3,7 @@ import type { CollectionConfig } from 'payload'
 export const CampaignMedia: CollectionConfig = {
   slug: 'campaign-media',
   admin: {
-    useAsTitle: 'fileName',
+    useAsTitle: 'id', // Changed from 'fileName' since we removed that field
   },
   fields: [
     {
@@ -19,32 +19,13 @@ export const CampaignMedia: CollectionConfig = {
       required: true,
     },
     {
-      name: 'fileName',
-      type: 'text',
+      name: 'mediaFile',
+      type: 'upload',
+      relationTo: 'media',
       required: true,
-    },
-    {
-      name: 'fileType',
-      type: 'select',
-      options: [
-        { label: 'PDF', value: 'pdf' },
-        { label: 'JPEG', value: 'jpeg' },
-        { label: 'PNG', value: 'png' },
-        { label: 'GIF', value: 'gif' },
-        { label: 'MP4', value: 'mp4' },
-        { label: 'Other', value: 'other' }
-      ],
-      required: true,
-    },
-    {
-      name: 'fileUrl',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'fileSize',
-      type: 'number',
-      required: true,
+      admin: {
+        description: '✅ Media file from Media collection (preferred - automatically uploads to S3)',
+      },
     },
     {
       name: 'description',
@@ -61,22 +42,61 @@ export const CampaignMedia: CollectionConfig = {
       defaultValue: 'uploading',
     },
     {
+      name: 'approvalStatus',
+      type: 'select',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Under Review', value: 'under_review' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Rejected', value: 'rejected' }
+      ],
+      defaultValue: 'pending',
+      required: true,
+      admin: {
+        description: 'Creative approval status',
+      },
+    },
+    {
       name: 'isApproved',
       type: 'checkbox',
       defaultValue: false,
+      admin: {
+        description: 'Legacy field - use approvalStatus instead',
+        readOnly: true,
+      },
     },
     {
       name: 'approvedBy',
       type: 'relationship',
       relationTo: 'users',
+      admin: {
+        description: 'Admin who approved/rejected this creative',
+        readOnly: true,
+      },
     },
     {
       name: 'approvedAt',
       type: 'date',
+      admin: {
+        description: 'Timestamp when creative was approved',
+        readOnly: true,
+      },
     },
     {
       name: 'rejectionReason',
       type: 'textarea',
+      admin: {
+        description: 'Reason for creative rejection (shown to advertiser)',
+        condition: (data) => data?.approvalStatus === 'rejected',
+      },
+    },
+    {
+      name: 'adminNotes',
+      type: 'textarea',
+      admin: {
+        description: 'Internal admin notes about this creative',
+        condition: (data, siblingData, { user }) => user?.role === 'admin',
+      },
     },
     {
       name: 'uploadedAt',

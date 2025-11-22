@@ -32,6 +32,15 @@ export const AdCampaigns: CollectionConfig = {
       required: true,
     },
     {
+      name: 'magazine',
+      type: 'relationship',
+      relationTo: 'driver-magazines',
+      admin: {
+        description: 'Linked magazine edition (auto-linked when admin creates new magazine)',
+        condition: (data: any) => data.campaignType === 'magazine',
+      },
+    },
+    {
       name: 'budget',
       type: 'number',
       required: true,
@@ -109,6 +118,57 @@ export const AdCampaigns: CollectionConfig = {
     {
       name: 'notes',
       type: 'textarea',
+    },
+    // QR Engagement Campaign fields
+    {
+      name: 'enableQRCampaign',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Enable QR code generation for this campaign',
+        condition: (data: any) => data.campaignType === 'qr_engagement',
+      },
+    },
+    {
+      name: 'qrCode',
+      type: 'relationship',
+      relationTo: 'advertiser-qr-codes',
+      admin: {
+        description: 'Generated QR code for this campaign',
+        condition: (data: any) => data.enableQRCampaign === true,
+      },
+    },
+    {
+      name: 'promoTitle',
+      type: 'text',
+      admin: {
+        description: 'Title of promotional offer (e.g., "40% Hotel Discount")',
+        condition: (data: any) => data.enableQRCampaign === true,
+      },
+    },
+    {
+      name: 'promoDescription',
+      type: 'textarea',
+      admin: {
+        description: 'Description of the offer',
+        condition: (data: any) => data.enableQRCampaign === true,
+      },
+    },
+    {
+      name: 'promoLink',
+      type: 'text',
+      admin: {
+        description: 'URL where users redeem the offer',
+        condition: (data: any) => data.enableQRCampaign === true,
+      },
+    },
+    {
+      name: 'promoTerms',
+      type: 'textarea',
+      admin: {
+        description: 'Terms and conditions',
+        condition: (data: any) => data.enableQRCampaign === true,
+      },
     },
     // Status tracking fields
     {
