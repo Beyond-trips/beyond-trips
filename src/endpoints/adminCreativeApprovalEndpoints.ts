@@ -86,6 +86,12 @@ export const getCreativeDetails = async (req: PayloadRequest): Promise<Response>
     const accessCheck = checkAdminAccess(user)
     if (accessCheck) return accessCheck
 
+    if (!req.url) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const creativeId = pathParts[pathParts.length - 1]
@@ -157,6 +163,12 @@ export const approveCreative = async (req: PayloadRequest): Promise<Response> =>
     const accessCheck = checkAdminAccess(user)
     if (accessCheck) return accessCheck
 
+    if (!req.url) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const creativeId = pathParts[pathParts.length - 2] // /admin/creatives/:id/approve
@@ -169,6 +181,14 @@ export const approveCreative = async (req: PayloadRequest): Promise<Response> =>
     }
 
     console.log(`✅ Admin approving creative: ${creativeId}`)
+
+    // Add type guard to ensure user is not null
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     const updatedCreative = await req.payload.update({
       collection: 'campaign-media',
@@ -244,6 +264,12 @@ export const rejectCreative = async (req: PayloadRequest): Promise<Response> => 
     const accessCheck = checkAdminAccess(user)
     if (accessCheck) return accessCheck
 
+    if (!req.url) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const creativeId = pathParts[pathParts.length - 2] // /admin/creatives/:id/reject
@@ -332,6 +358,12 @@ export const markCreativeUnderReview = async (req: PayloadRequest): Promise<Resp
     const accessCheck = checkAdminAccess(user)
     if (accessCheck) return accessCheck
 
+    if (!req.url) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const creativeId = pathParts[pathParts.length - 2] // /admin/creatives/:id/review

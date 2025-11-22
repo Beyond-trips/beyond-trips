@@ -264,7 +264,7 @@ export const ProfilePicturesCloud: CollectionConfig = {
           try {
             // Find other active profile pictures for the same owner
             const existingPics = await req.payload.find({
-              collection: 'profile-pictures-cloud',
+              collection: 'profile-pictures-cloud' as any,
               where: {
                 and: [
                   { ownerType: { equals: doc.ownerType } },
@@ -278,7 +278,7 @@ export const ProfilePicturesCloud: CollectionConfig = {
             // Update each one individually
             for (const pic of existingPics.docs) {
               await req.payload.update({
-                collection: 'profile-pictures-cloud',
+                collection: 'profile-pictures-cloud' as any,
                 id: pic.id,
                 data: {
                   isActive: false,

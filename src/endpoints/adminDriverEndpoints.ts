@@ -69,6 +69,12 @@ export const getPendingDriverRegistrations = async (req: PayloadRequest): Promis
     console.log('👨‍💼 Admin getting pending driver registrations')
 
     // Get URL parameters
+    if (!req.url) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const url = new URL(req.url)
     const onboardingStatus = url.searchParams.get('onboardingStatus') || 'pending_review'
     const page = parseInt(url.searchParams.get('page') || '1')
@@ -228,7 +234,7 @@ export const approveDriverRegistration = async (req: PayloadRequest): Promise<Re
       id: userId,
       data: {
         status: 'active'
-      }
+      } as any
     })
 
     // TODO: Send approval notification to driver
@@ -320,7 +326,7 @@ export const rejectDriverRegistration = async (req: PayloadRequest): Promise<Res
       data: {
         onboardingStatus: 'rejected',
         rejectionReason: rejectionReason
-      }
+      } as any
     })
 
     // Update user status to inactive
@@ -329,7 +335,7 @@ export const rejectDriverRegistration = async (req: PayloadRequest): Promise<Res
       id: userId,
       data: {
         status: 'inactive'
-      }
+      } as any
     })
 
     // TODO: Send rejection notification to driver with reason

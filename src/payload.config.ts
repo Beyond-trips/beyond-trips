@@ -30,6 +30,7 @@ import { CampaignMedia } from './collections/CampaignMedia'
 import { Invoices } from './collections/Invoices'
 import { AnalyticsData } from './collections/AnalyticsData'
 import { ProfilePictures } from './collections/ProfilePictures'
+import { ProfilePicturesCloud } from './collections/ProfilePicturesCloud'
 import BankDetailsRequests from './collections/BankDetailsRequests'
 import MagazinePickups from './collections/MagazinePickups'
 import SystemSettings from './collections/SystemSettings'
@@ -241,6 +242,7 @@ export default buildConfig({
     Invoices,
     AnalyticsData,
     ProfilePictures,
+    ProfilePicturesCloud,
     BankDetailsRequests,
     MagazinePickups,
     SystemSettings,
