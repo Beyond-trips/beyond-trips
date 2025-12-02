@@ -18,6 +18,10 @@ export const Users: CollectionConfig = {
       if (user?.role === 'admin') return true
       return false
     },
+    // Allow admins to unlock accounts
+    unlock: ({ req: { user } }) => {
+      return user?.role === 'admin'
+    },
   },
   admin: {
     useAsTitle: 'email',
