@@ -193,12 +193,6 @@ export default buildConfig({
     'https://beyond-trips-backend2.onrender.com', // Production domain
   ],
   
-  // Cookie configuration for production
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'lax', // Allow cookies in cross-site requests
-  },
-  
   admin: {
     user: Users.slug,
     importMap: { 
