@@ -7,8 +7,11 @@ export const Users: CollectionConfig = {
   access: {
     create: () => true, // Allow anyone to create users
     read: () => true,
-    update: ({ req: { user } }) => {
-      if (user) return true
+    update: ({ req: { user }, id }) => {
+      // Admins can update any user (including unlocking accounts)
+      if (user?.role === 'admin') return true
+      // Users can only update themselves
+      if (user) return { id: { equals: user.id } }
       return false
     },
     delete: ({ req: { user } }) => {
