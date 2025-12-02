@@ -184,8 +184,20 @@ export default buildConfig({
     'http://localhost:3000',
     'https://www.beyondtrips.uk',
     'https://www.google.com',
+    'https://beyond-trips-backend2.onrender.com', // Production domain
   ],
-  csrf: ['https://www.beyondtrips.uk','http://localhost:3000','https://www.google.com'],
+  csrf: [
+    'https://www.beyondtrips.uk',
+    'http://localhost:3000',
+    'https://www.google.com',
+    'https://beyond-trips-backend2.onrender.com', // Production domain
+  ],
+  
+  // Cookie configuration for production
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'lax', // Allow cookies in cross-site requests
+  },
   
   admin: {
     user: Users.slug,
