@@ -1342,7 +1342,7 @@ export const updateDriverProfile = async (req: PayloadRequest): Promise<Response
       })
     }
 
-    const { firstName, lastName, phoneNumber } = body
+    const { firstName, lastName, phoneNumber, address } = body
 
     if (!firstName || !lastName) {
       return new Response(JSON.stringify({
@@ -1355,14 +1355,32 @@ export const updateDriverProfile = async (req: PayloadRequest): Promise<Response
 
     console.log('✏️ Updating driver profile for:', user.id)
 
-    const updatedUser = await req.payload.update({
+    const updateData: any = {
+      firstName,
+      lastName
+    }
+    
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
+    if (address !== undefined) updateData.address = address
+
+    await req.payload.update({
       collection: 'users',
       id: user.id,
-      data: {
-        firstName,
-        lastName,
-        phoneNumber
-      }
+      data: updateData
+    })
+
+    // Fetch the updated user to ensure all fields are returned
+    const updatedUser = await req.payload.findByID({
+      collection: 'users',
+      id: user.id
+    })
+
+    console.log('📋 Updated user data:', {
+      id: updatedUser.id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      address: (updatedUser as any).address,
+      hasAddress: !!(updatedUser as any).address
     })
 
     return new Response(JSON.stringify({
@@ -1373,7 +1391,8 @@ export const updateDriverProfile = async (req: PayloadRequest): Promise<Response
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         email: updatedUser.email,
-        phone: updatedUser.phoneNumber
+        phone: updatedUser.phoneNumber,
+        address: (updatedUser as any).address || null
       }
     }), {
       headers: { 'Content-Type': 'application/json' }
