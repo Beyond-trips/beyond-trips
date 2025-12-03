@@ -1426,12 +1426,27 @@ export const requestBankDetailsUpdate = async (req: PayloadRequest): Promise<Res
       })
     }
 
-    const { newBankDetails, reason } = body
+    const { newBankDetails, reason, bankName, accountName, accountNumber } = body
+
+    // Support both nested (newBankDetails) and flat (bankName, accountName, accountNumber) formats
+    let bankDetailsToUse: any = null
+    
+    if (newBankDetails && newBankDetails.bankName && newBankDetails.accountNumber && newBankDetails.accountName) {
+      // Nested format
+      bankDetailsToUse = newBankDetails
+    } else if (bankName && accountNumber && accountName) {
+      // Flat format - convert to nested
+      bankDetailsToUse = {
+        bankName,
+        accountNumber,
+        accountName
+      }
+    }
 
     // Validate required fields
-    if (!newBankDetails || !newBankDetails.bankName || !newBankDetails.accountNumber || !newBankDetails.accountName) {
+    if (!bankDetailsToUse || !bankDetailsToUse.bankName || !bankDetailsToUse.accountNumber || !bankDetailsToUse.accountName) {
       return new Response(JSON.stringify({
-        error: 'New bank details are required (bankName, accountNumber, accountName)'
+        error: 'New bank details are required (bankName, accountNumber, accountName). You can send them as a nested object in "newBankDetails" or as flat fields in the request body.'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -1502,9 +1517,9 @@ export const requestBankDetailsUpdate = async (req: PayloadRequest): Promise<Res
         driver: user.id,
         oldBankDetails,
         newBankDetails: {
-          bankName: newBankDetails.bankName,
-          accountNumber: newBankDetails.accountNumber,
-          accountName: newBankDetails.accountName
+          bankName: bankDetailsToUse.bankName,
+          accountNumber: bankDetailsToUse.accountNumber,
+          accountName: bankDetailsToUse.accountName
         },
         reason,
         status: 'pending',
